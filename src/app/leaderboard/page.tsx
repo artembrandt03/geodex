@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { ROUND_LENGTHS } from "@/lib/game/types";
 
 const MODES = [
@@ -119,8 +119,7 @@ export default function LeaderboardPage() {
               </tr>
             </thead>
             <tbody>
-              <AnimatePresence>
-                {entries.map((entry, i) => (
+              {entries.map((entry, i) => (
                   <motion.tr
                     key={`${mode}-${difficulty}-${roundLength}-${entry.rank}-${entry.displayName}`}
                     initial={{ opacity: 0, y: 6 }}
@@ -133,8 +132,7 @@ export default function LeaderboardPage() {
                     <td className="px-4 py-2.5 font-semibold text-primary">{entry.score}</td>
                     <td className="px-4 py-2.5 text-muted">{entry.correct}</td>
                   </motion.tr>
-                ))}
-              </AnimatePresence>
+              ))}
             </tbody>
           </table>
         )}

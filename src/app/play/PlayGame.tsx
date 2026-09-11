@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { AnimatePresence, animate, motion, useMotionValue } from "framer-motion";
+import { animate, motion, useMotionValue } from "framer-motion";
 import { WorldMap } from "@/components/game/WorldMap";
 import { useRound } from "@/lib/game/useRound";
 import { normalizeAnswer } from "@/lib/game/normalizeAnswer";
@@ -157,70 +157,74 @@ function ActiveRound({
         </div>
       </div>
 
-      <AnimatePresence mode="wait">
-        {state.status === "finished" ? (
-          <motion.div
-            key="summary"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 flex items-center justify-center bg-background/60 backdrop-blur-sm"
-          >
-            <RoundSummary
-              totalScore={state.totalScore}
-              correctCount={state.correctCount}
-              roundLength={config.roundLength}
-              saved={state.saved}
-              onPlayAgain={onPlayAgain}
-            />
-          </motion.div>
-        ) : (
-          <motion.div
-            key={`prompt-${state.currentIndex}`}
-            initial={{ opacity: 0, y: -12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -12 }}
-            transition={{ duration: 0.3 }}
-            className="pointer-events-none absolute inset-x-0 top-20 flex justify-center px-4"
-          >
-            <div className="pointer-events-auto rounded-2xl border border-border bg-surface/85 px-6 py-3 text-center shadow-xl backdrop-blur-md">
-              {config.mode === "NAME" ? (
-                <>
-                  <p className="text-xs font-medium uppercase tracking-wide text-muted">
-                    Find this country
-                  </p>
-                  <p className="font-display text-2xl font-semibold">{current.name}</p>
-                </>
-              ) : (
-                <p className="font-display text-xl font-semibold">
-                  Which country is highlighted?
+      {/*
+        Deliberately not using AnimatePresence's exit tracking here: under
+        this project's React/framer-motion versions, exit animations on this
+        subtree could get stuck (the old content never unmounts), permanently
+        freezing the prompt on a stale question. A plain key-based remount
+        gives a reliable enter animation and drops the old element instantly
+        instead, which is a small visual trade worth the reliability.
+      */}
+      {state.status === "finished" ? (
+        <motion.div
+          key="summary"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="absolute inset-0 flex items-center justify-center bg-background/60 backdrop-blur-sm"
+        >
+          <RoundSummary
+            totalScore={state.totalScore}
+            correctCount={state.correctCount}
+            roundLength={config.roundLength}
+            saved={state.saved}
+            onPlayAgain={onPlayAgain}
+          />
+        </motion.div>
+      ) : (
+        <motion.div
+          key={`prompt-${state.currentIndex}`}
+          initial={{ opacity: 0, y: -12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="pointer-events-none absolute inset-x-0 top-20 flex justify-center px-4"
+        >
+          <div className="pointer-events-auto rounded-2xl border border-border bg-surface/85 px-6 py-3 text-center shadow-xl backdrop-blur-md">
+            {config.mode === "NAME" ? (
+              <>
+                <p className="text-xs font-medium uppercase tracking-wide text-muted">
+                  Find this country
                 </p>
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+                <p className="font-display text-2xl font-semibold">{current.name}</p>
+              </>
+            ) : (
+              <p className="font-display text-xl font-semibold">
+                Which country is highlighted?
+              </p>
+            )}
+          </div>
+        </motion.div>
+      )}
 
       {/* Bottom overlay: shape-mode input, or feedback */}
       <div className="pointer-events-none absolute inset-x-0 bottom-6 flex flex-col items-center gap-3 px-4">
-        <AnimatePresence>
-          {isRevealing && state.lastOutcome && (
-            <motion.div
-              initial={{ opacity: 0, y: 10, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 10, scale: 0.95 }}
-              className={`pointer-events-auto rounded-xl border px-5 py-2.5 text-center font-medium shadow-xl backdrop-blur-md ${
-                state.lastOutcome.correct
-                  ? "border-success/40 bg-success/15 text-success"
-                  : "border-danger/40 bg-danger/15 text-danger"
-              }`}
-            >
-              {state.lastOutcome.correct
-                ? `Correct! +${state.lastOutcome.score} points`
-                : `Not quite, it was ${current.name}`}
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {/* Plain conditional render (see note above) rather than
+            AnimatePresence, for the same exit-reliability reason. */}
+        {isRevealing && state.lastOutcome && (
+          <motion.div
+            key={state.currentIndex}
+            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            className={`pointer-events-auto rounded-xl border px-5 py-2.5 text-center font-medium shadow-xl backdrop-blur-md ${
+              state.lastOutcome.correct
+                ? "border-success/40 bg-success/15 text-success"
+                : "border-danger/40 bg-danger/15 text-danger"
+            }`}
+          >
+            {state.lastOutcome.correct
+              ? `Correct! +${state.lastOutcome.score} points`
+              : `Not quite, it was ${current.name}`}
+          </motion.div>
+        )}
 
         {config.mode === "SHAPE" && state.status !== "finished" && (
           <form
@@ -277,6 +281,16 @@ function AnimatedScore({ value }: { value: number }) {
   );
 }
 
+const CONFETTI_COLORS = ["var(--primary)", "var(--accent)", "var(--success)"];
+
+function performanceMessage(accuracy: number): string {
+  if (accuracy === 1) return "Perfect round!";
+  if (accuracy >= 0.8) return "Excellent work";
+  if (accuracy >= 0.5) return "Nice job";
+  if (accuracy > 0) return "Keep practicing";
+  return "Tough round, try again";
+}
+
 function RoundSummary({
   totalScore,
   correctCount,
@@ -290,14 +304,19 @@ function RoundSummary({
   saved: boolean;
   onPlayAgain: () => void;
 }) {
+  const accuracy = correctCount / roundLength;
+  const celebrate = accuracy >= 0.8;
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.9, y: 12 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       transition={{ type: "spring", stiffness: 260, damping: 22 }}
-      className="mx-4 flex max-w-md flex-col items-center gap-3 rounded-2xl border border-border bg-surface px-8 py-10 text-center shadow-2xl"
+      className="relative mx-4 flex max-w-md flex-col items-center gap-3 rounded-2xl border border-border bg-surface px-8 py-10 text-center shadow-2xl"
     >
+      {celebrate && <Confetti />}
       <h1 className="font-display text-3xl font-bold">Round complete</h1>
+      <p className="font-medium text-accent">{performanceMessage(accuracy)}</p>
       <motion.p
         initial={{ scale: 0.6 }}
         animate={{ scale: 1 }}
@@ -334,5 +353,40 @@ function RoundSummary({
         </Link>
       </div>
     </motion.div>
+  );
+}
+
+const CONFETTI_PIECE_COUNT = 18;
+// Deterministic "looks random" jitter (no Math.random) so the component
+// stays pure to render — a purely decorative burst doesn't need true
+// randomness, just visual variety.
+const CONFETTI_PIECES = Array.from({ length: CONFETTI_PIECE_COUNT }, (_, i) => ({
+  id: i,
+  angle: (i / CONFETTI_PIECE_COUNT) * Math.PI * 2,
+  distance: 90 + ((i * 37) % 70),
+  color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
+  delay: ((i * 13) % 15) / 100,
+}));
+
+/** A small celebratory burst of particles for a strong round. Purely decorative. */
+function Confetti() {
+  return (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl">
+      {CONFETTI_PIECES.map((p) => (
+        <motion.span
+          key={p.id}
+          initial={{ opacity: 1, x: 0, y: 0, scale: 1 }}
+          animate={{
+            opacity: 0,
+            x: Math.cos(p.angle) * p.distance,
+            y: Math.sin(p.angle) * p.distance - 20,
+            scale: 0.4,
+          }}
+          transition={{ duration: 1, delay: p.delay, ease: "easeOut" }}
+          className="absolute left-1/2 top-16 h-2 w-2 rounded-full"
+          style={{ backgroundColor: p.color }}
+        />
+      ))}
+    </div>
   );
 }

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { AnimatePresence, animate, motion, useMotionValue } from "framer-motion";
 import { WorldMap } from "@/components/game/WorldMap";
 import { useRound } from "@/lib/game/useRound";
 import { normalizeAnswer } from "@/lib/game/normalizeAnswer";
@@ -42,9 +43,9 @@ export function PlayGame() {
 
   if (!config) {
     return (
-      <div className="mx-auto max-w-md px-4 py-16 text-center">
-        <p className="mb-4">That game setup isn&apos;t valid.</p>
-        <Link href="/" className="text-emerald-600 underline">
+      <div className="mx-auto max-w-md px-4 py-16 text-center animate-fade-up">
+        <p className="mb-4 text-muted">That game setup isn&apos;t valid.</p>
+        <Link href="/" className="text-primary underline underline-offset-4">
           Back to setup
         </Link>
       </div>
@@ -52,7 +53,7 @@ export function PlayGame() {
   }
 
   // Keying on the config too (not just replayToken) guarantees a fresh mount
-  // — and therefore fresh "loading" state — whenever the game setup changes.
+  // whenever the game setup changes.
   const roundKey = `${config.mode}-${config.difficulty}-${config.roundLength}-${replayToken}`;
 
   return (
@@ -85,29 +86,21 @@ function ActiveRound({
   }, [config.mode]);
 
   if (state.status === "loading") {
-    return <p className="px-4 py-16 text-center text-gray-500">Loading round...</p>;
-  }
-
-  if (state.status === "error") {
     return (
-      <div className="mx-auto max-w-md px-4 py-16 text-center">
-        <p className="mb-4 text-red-600">{state.errorMessage}</p>
-        <Link href="/" className="text-emerald-600 underline">
-          Back to setup
-        </Link>
+      <div className="flex h-full items-center justify-center">
+        <p className="animate-pulse text-muted">Loading round...</p>
       </div>
     );
   }
 
-  if (state.status === "finished") {
+  if (state.status === "error") {
     return (
-      <RoundSummary
-        totalScore={state.totalScore}
-        correctCount={state.correctCount}
-        roundLength={config.roundLength}
-        saved={state.saved}
-        onPlayAgain={onPlayAgain}
-      />
+      <div className="mx-auto max-w-md px-4 py-16 text-center animate-fade-up">
+        <p className="mb-4 text-danger">{state.errorMessage}</p>
+        <Link href="/" className="text-primary underline underline-offset-4">
+          Back to setup
+        </Link>
+      </div>
     );
   }
 
@@ -123,76 +116,164 @@ function ActiveRound({
     setGuessInput("");
   }
 
+  const progress = state.status === "finished" ? 1 : state.currentIndex / config.roundLength;
+
   return (
-    <div className="mx-auto flex max-w-4xl flex-col gap-4 px-4 py-6">
-      <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
-        <span>
-          Question {state.currentIndex + 1} / {config.roundLength}
-        </span>
-        <span>
-          Score: <span className="font-semibold text-gray-900 dark:text-gray-100">{state.totalScore}</span>
-        </span>
-      </div>
-
-      {config.mode === "NAME" ? (
-        <div className="text-center">
-          <p className="text-sm text-gray-600 dark:text-gray-400">Find this country:</p>
-          <p className="text-2xl font-bold">{current.name}</p>
-        </div>
-      ) : (
-        <div className="text-center">
-          <p className="text-2xl font-bold">Which country is highlighted?</p>
-        </div>
-      )}
-
+    <div className="relative h-full w-full">
       <WorldMap
-        interactive={config.mode === "NAME" && !isRevealing}
-        highlightedCode={config.mode === "SHAPE" ? current.code : null}
+        interactive={config.mode === "NAME" && !isRevealing && state.status !== "finished"}
+        highlightedCode={config.mode === "SHAPE" ? current?.code : null}
         feedbackCode={state.lastOutcome?.code ?? null}
         feedbackCorrect={state.lastOutcome?.correct}
+        resetSignal={state.currentIndex}
         onCountryClick={(code) => {
           if (config.mode === "NAME") submitGuess(code);
         }}
       />
 
-      {config.mode === "SHAPE" && (
-        <form onSubmit={handleShapeSubmit} className="flex justify-center gap-2">
-          <input
-            list="country-names"
-            value={guessInput}
-            onChange={(e) => setGuessInput(e.target.value)}
-            disabled={isRevealing}
-            placeholder="Type a country name..."
-            autoFocus
-            className="w-72 rounded-md border border-black/10 px-3 py-2 dark:border-white/20 dark:bg-black/20"
-          />
-          <datalist id="country-names">
-            {countryNames.map((c) => (
-              <option key={c.code} value={c.name} />
-            ))}
-          </datalist>
-          <button
-            type="submit"
-            disabled={isRevealing}
-            className="rounded-md bg-emerald-600 px-4 py-2 font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
-          >
-            Guess
-          </button>
-        </form>
-      )}
+      {/* Top overlay: progress + score */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-4 p-4">
+        <div className="pointer-events-auto flex flex-col gap-1 rounded-xl border border-border bg-surface/85 px-4 py-2 shadow-lg backdrop-blur-md">
+          <span className="text-xs font-medium uppercase tracking-wide text-muted">
+            {state.status === "finished"
+              ? "Complete"
+              : `Question ${state.currentIndex + 1} / ${config.roundLength}`}
+          </span>
+          <div className="h-1.5 w-40 overflow-hidden rounded-full bg-surface-2">
+            <motion.div
+              className="h-full rounded-full bg-primary"
+              initial={false}
+              animate={{ width: `${progress * 100}%` }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
+            />
+          </div>
+        </div>
 
-      {isRevealing && state.lastOutcome && (
-        <p
-          className={`text-center font-medium ${
-            state.lastOutcome.correct ? "text-emerald-600" : "text-red-600"
-          }`}
-        >
-          {state.lastOutcome.correct
-            ? `Correct! +${state.lastOutcome.score} points`
-            : `Not quite — it was ${current.name}`}
-        </p>
-      )}
+        <div className="pointer-events-auto rounded-xl border border-border bg-surface/85 px-4 py-2 text-right shadow-lg backdrop-blur-md">
+          <span className="block text-xs font-medium uppercase tracking-wide text-muted">
+            Score
+          </span>
+          <AnimatedScore value={state.totalScore} />
+        </div>
+      </div>
+
+      <AnimatePresence mode="wait">
+        {state.status === "finished" ? (
+          <motion.div
+            key="summary"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 flex items-center justify-center bg-background/60 backdrop-blur-sm"
+          >
+            <RoundSummary
+              totalScore={state.totalScore}
+              correctCount={state.correctCount}
+              roundLength={config.roundLength}
+              saved={state.saved}
+              onPlayAgain={onPlayAgain}
+            />
+          </motion.div>
+        ) : (
+          <motion.div
+            key={`prompt-${state.currentIndex}`}
+            initial={{ opacity: 0, y: -12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -12 }}
+            transition={{ duration: 0.3 }}
+            className="pointer-events-none absolute inset-x-0 top-20 flex justify-center px-4"
+          >
+            <div className="pointer-events-auto rounded-2xl border border-border bg-surface/85 px-6 py-3 text-center shadow-xl backdrop-blur-md">
+              {config.mode === "NAME" ? (
+                <>
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted">
+                    Find this country
+                  </p>
+                  <p className="font-display text-2xl font-semibold">{current.name}</p>
+                </>
+              ) : (
+                <p className="font-display text-xl font-semibold">
+                  Which country is highlighted?
+                </p>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Bottom overlay: shape-mode input, or feedback */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-6 flex flex-col items-center gap-3 px-4">
+        <AnimatePresence>
+          {isRevealing && state.lastOutcome && (
+            <motion.div
+              initial={{ opacity: 0, y: 10, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 10, scale: 0.95 }}
+              className={`pointer-events-auto rounded-xl border px-5 py-2.5 text-center font-medium shadow-xl backdrop-blur-md ${
+                state.lastOutcome.correct
+                  ? "border-success/40 bg-success/15 text-success"
+                  : "border-danger/40 bg-danger/15 text-danger"
+              }`}
+            >
+              {state.lastOutcome.correct
+                ? `Correct! +${state.lastOutcome.score} points`
+                : `Not quite, it was ${current.name}`}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {config.mode === "SHAPE" && state.status !== "finished" && (
+          <form
+            onSubmit={handleShapeSubmit}
+            className="pointer-events-auto flex gap-2 rounded-xl border border-border bg-surface/85 p-2 shadow-xl backdrop-blur-md"
+          >
+            <input
+              list="country-names"
+              value={guessInput}
+              onChange={(e) => setGuessInput(e.target.value)}
+              disabled={isRevealing}
+              placeholder="Type a country name..."
+              autoFocus
+              className="w-64 rounded-lg border border-transparent bg-surface-2 px-3 py-2 text-sm outline-none focus:border-primary sm:w-80"
+            />
+            <datalist id="country-names">
+              {countryNames.map((c) => (
+                <option key={c.code} value={c.name} />
+              ))}
+            </datalist>
+            <motion.button
+              type="submit"
+              disabled={isRevealing}
+              whileHover={{ scale: isRevealing ? 1 : 1.03 }}
+              whileTap={{ scale: isRevealing ? 1 : 0.97 }}
+              className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-opacity disabled:opacity-50"
+            >
+              Guess
+            </motion.button>
+          </form>
+        )}
+      </div>
     </div>
+  );
+}
+
+function AnimatedScore({ value }: { value: number }) {
+  const motionValue = useMotionValue(value);
+  const [display, setDisplay] = useState(value);
+
+  useEffect(() => {
+    const controls = animate(motionValue, value, { duration: 0.5, ease: "easeOut" });
+    return () => controls.stop();
+  }, [value, motionValue]);
+
+  useEffect(() => motionValue.on("change", (v) => setDisplay(Math.round(v))), [motionValue]);
+
+  // Keying on `value` remounts just this span, retriggering the bump
+  // animation each time the score changes.
+  return (
+    <span key={value} className="block font-display text-xl font-bold text-primary animate-score-bump">
+      {display}
+    </span>
   );
 }
 
@@ -210,34 +291,48 @@ function RoundSummary({
   onPlayAgain: () => void;
 }) {
   return (
-    <div className="mx-auto flex max-w-md flex-col items-center gap-4 px-4 py-16 text-center">
-      <h1 className="text-3xl font-bold">Round complete!</h1>
-      <p className="text-5xl font-extrabold text-emerald-600">{totalScore}</p>
-      <p className="text-gray-600 dark:text-gray-400">
+    <motion.div
+      initial={{ opacity: 0, scale: 0.9, y: 12 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      transition={{ type: "spring", stiffness: 260, damping: 22 }}
+      className="mx-4 flex max-w-md flex-col items-center gap-3 rounded-2xl border border-border bg-surface px-8 py-10 text-center shadow-2xl"
+    >
+      <h1 className="font-display text-3xl font-bold">Round complete</h1>
+      <motion.p
+        initial={{ scale: 0.6 }}
+        animate={{ scale: 1 }}
+        transition={{ type: "spring", stiffness: 300, damping: 15, delay: 0.15 }}
+        className="font-display text-6xl font-extrabold text-primary"
+      >
+        {totalScore}
+      </motion.p>
+      <p className="text-muted">
         {correctCount} / {roundLength} correct
       </p>
-      {saved && <p className="text-sm text-emerald-600">Saved to the leaderboard ✓</p>}
+      {saved && <p className="text-sm text-success">Saved to the leaderboard ✓</p>}
 
-      <div className="mt-4 flex gap-3">
-        <button
+      <div className="mt-4 flex flex-wrap justify-center gap-3">
+        <motion.button
           onClick={onPlayAgain}
-          className="rounded-md bg-emerald-600 px-4 py-2 font-medium text-white hover:bg-emerald-700"
+          whileHover={{ scale: 1.03 }}
+          whileTap={{ scale: 0.97 }}
+          className="rounded-lg bg-primary px-4 py-2 font-medium text-primary-foreground"
         >
           Play again
-        </button>
+        </motion.button>
         <Link
           href="/leaderboard"
-          className="rounded-md border border-black/10 px-4 py-2 font-medium hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/10"
+          className="rounded-lg border border-border-strong px-4 py-2 font-medium transition-colors hover:bg-surface-2"
         >
           Leaderboard
         </Link>
         <Link
           href="/"
-          className="rounded-md border border-black/10 px-4 py-2 font-medium hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/10"
+          className="rounded-lg border border-border-strong px-4 py-2 font-medium transition-colors hover:bg-surface-2"
         >
           Home
         </Link>
       </div>
-    </div>
+    </motion.div>
   );
 }

@@ -65,7 +65,8 @@ Claude builds the MVP end-to-end on the `mvp` branch. Commit attribution: `Co-Au
 
 Keep this short — a running log of what's done, not a design doc. Prune entries that are no longer relevant once superseded by actual code.
 
-- 2026-09-11: Repo created, stack + branch strategy decided. README and CLAUDE.md added on `main`. `dev` and `mvp` branches created. Scaffolding not yet started.
+- 2026-09-11: Repo created, stack + branch strategy decided. README and CLAUDE.md added on `main`. `dev` and `mvp` branches created.
+- 2026-09-11: Next.js app scaffolded (App Router, TS, Tailwind). Local Postgres via Docker Compose (host port 5442 — 5432 is taken by other local projects). Prisma schema (User/Country/GameResult) + initial migration. Country table seeded from world-atlas TopoJSON with curated Easy/Medium/Hard tiers (195 countries: 59/82/54). Map data copied to `public/data/countries-50m.json`. Pinned prisma/@prisma-client to 6.12.0 (newer versions have unresolvable peer deps or high-severity transitive vulns). Next up: map rendering component, then country-selection/scoring engine, then auth, then game UI and leaderboard.
 
 ## Local development
 

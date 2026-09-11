@@ -39,6 +39,7 @@ export function WorldMap({
   const [codeByNumericId, setCodeByNumericId] = useState<Record<string, string> | null>(
     null,
   );
+  const [hoveredKey, setHoveredKey] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -53,7 +54,8 @@ export function WorldMap({
   }, []);
 
   const resolveCode = useCallback(
-    (geoId: string | number) => codeByNumericId?.[String(geoId)] ?? null,
+    (geoId: string | number | undefined) =>
+      geoId === undefined ? null : (codeByNumericId?.[String(geoId)] ?? null),
     [codeByNumericId],
   );
 
@@ -74,6 +76,8 @@ export function WorldMap({
             }
             if (feedbackCode && code === feedbackCode) {
               fill = feedbackCorrect ? COLORS.correct : COLORS.incorrect;
+            } else if (interactive && hoveredKey === geo.rsmKey) {
+              fill = COLORS.landHover;
             }
 
             return (
@@ -83,27 +87,15 @@ export function WorldMap({
                 onClick={() => {
                   if (interactive) onCountryClick?.(code);
                 }}
+                onMouseEnter={() => interactive && setHoveredKey(geo.rsmKey)}
+                onMouseLeave={() => interactive && setHoveredKey(null)}
                 style={{
-                  default: {
-                    fill,
-                    stroke: COLORS.border,
-                    strokeWidth: 0.3,
-                    outline: "none",
-                    cursor: interactive ? "pointer" : "default",
-                    transition: "fill 150ms ease",
-                  },
-                  hover: {
-                    fill: interactive ? COLORS.landHover : fill,
-                    stroke: COLORS.border,
-                    strokeWidth: 0.3,
-                    outline: "none",
-                  },
-                  pressed: {
-                    fill,
-                    stroke: COLORS.border,
-                    strokeWidth: 0.3,
-                    outline: "none",
-                  },
+                  fill,
+                  stroke: COLORS.border,
+                  strokeWidth: 0.3,
+                  outline: "none",
+                  cursor: interactive ? "pointer" : "default",
+                  transition: "fill 150ms ease",
                 }}
               />
             );

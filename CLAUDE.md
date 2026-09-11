@@ -73,9 +73,13 @@ Keep this short — a running log of what's done, not a design doc. Prune entrie
 - Postgres runs locally via Docker Compose — no external DB account needed for dev.
 - Production DB (Neon or Supabase) and Netlify hosting are set up later, by the user (account creation / OAuth grants aren't something Claude does on the user's behalf). Claude will flag when that point is reached.
 
+## Known simplifications (MVP trade-offs)
+
+- **Rounds are client-authoritative.** `/api/rounds/start` returns the full question list (country codes + names) up front, and the client tracks timing, scoring, and the running total itself; `/api/rounds/complete` just persists whatever final score/correct count the client reports for signed-in users. A motivated player could inspect network traffic to see answers early, or tamper with the client to report a higher score. Acceptable for a casual hobby leaderboard; would need server-side per-question state (round tokens, one question revealed at a time, server-computed scoring) to close if this ever mattered.
+
 ## Open questions / decisions to revisit
 
-- Which country dataset/ID scheme to standardize on (ISO 3166-1 alpha-2/alpha-3) for matching TopoJSON features to DB records — decide before writing the country-matching logic, since it touches both frontend map data and backend leaderboard schema.
+- Which country dataset/ID scheme to standardize on (ISO 3166-1 alpha-2/alpha-3) for matching TopoJSON features to DB records — decide before writing the country-matching logic, since it touches both frontend map data and backend leaderboard schema. **Resolved**: alpha-3, via i18n-iso-countries converting the TopoJSON's numeric ids.
 
 <!-- BEGIN:nextjs-agent-rules -->
 

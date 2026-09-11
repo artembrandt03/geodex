@@ -1,0 +1,63 @@
+// Prisma schema for Geodex.
+// Learn more: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// A registered player. Guests never get a User row — guest play isn't persisted.
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  displayName  String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  gameResults GameResult[]
+}
+
+/// Country reference/seed data used to generate rounds.
+/// `code` is the ISO 3166-1 alpha-3 code, matching the id field in the
+/// world-atlas TopoJSON we render on the map (see prisma/seed.ts).
+model Country {
+  code           String     @id // ISO 3166-1 alpha-3, e.g. "CAN"
+  name           String
+  difficultyTier Difficulty
+
+  @@index([difficultyTier])
+}
+
+/// One completed round, always tied to a registered user (guests aren't stored).
+model GameResult {
+  id          String     @id @default(cuid())
+  userId      String
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mode        GameMode
+  difficulty  Difficulty
+  roundLength Int
+  score       Int
+  correct     Int
+  createdAt   DateTime   @default(now())
+
+  // Powers "top score per user per mode/difficulty/roundLength" leaderboard queries.
+  @@index([mode, difficulty, roundLength, score])
+  @@index([userId])
+}
+
+enum GameMode {
+  NAME
+  SHAPE
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}

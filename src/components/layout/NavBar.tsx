@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { useSession, signOut } from "next-auth/react";
 
 export function NavBar() {
   const { data: session, status } = useSession();
+  const pathname = usePathname();
 
   return (
     <header className="relative z-20 border-b border-border bg-surface/70 backdrop-blur-md">
@@ -22,7 +24,12 @@ export function NavBar() {
         </Link>
 
         <div className="flex items-center gap-5 text-sm">
-          <Link href="/leaderboard" className="text-muted transition-colors hover:text-foreground">
+          <Link
+            href="/leaderboard"
+            className={`transition-colors hover:text-foreground ${
+              pathname === "/leaderboard" ? "font-medium text-foreground" : "text-muted"
+            }`}
+          >
             Leaderboard
           </Link>
 

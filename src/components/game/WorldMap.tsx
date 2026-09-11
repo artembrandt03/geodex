@@ -15,8 +15,15 @@ const COUNTRY_CODES_URL = "/data/country-codes.json";
 
 const DEFAULT_CENTER: [number, number] = [10, 15];
 const DEFAULT_ZOOM = 1;
+const NARROW_VIEWPORT_ZOOM = 1.7; // a portrait phone letterboxes badly at zoom 1
+const NARROW_BREAKPOINT_PX = 640;
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 8;
+
+function getDefaultZoomForViewport() {
+  if (typeof window === "undefined") return DEFAULT_ZOOM;
+  return window.innerWidth < NARROW_BREAKPOINT_PX ? NARROW_VIEWPORT_ZOOM : DEFAULT_ZOOM;
+}
 
 const COLORS = {
   land: "var(--map-land)",
@@ -56,6 +63,9 @@ export function WorldMap({
   const [center, setCenter] = useState<[number, number]>(DEFAULT_CENTER);
   const [zoom, setZoom] = useState(DEFAULT_ZOOM);
   const isFirstResetSignal = useRef(true);
+  // Server-rendered default is always 1 (no window); a mount-time effect
+  // below adjusts this for narrow viewports so the map doesn't letterbox.
+  const defaultZoomRef = useRef(DEFAULT_ZOOM);
 
   useEffect(() => {
     let cancelled = false;
@@ -69,6 +79,13 @@ export function WorldMap({
     };
   }, []);
 
+  // Pick a closer default zoom on narrow (mostly mobile/portrait) viewports
+  // so the equirectangular projection doesn't leave huge empty margins.
+  useEffect(() => {
+    defaultZoomRef.current = getDefaultZoomForViewport();
+    setZoom(defaultZoomRef.current);
+  }, []);
+
   // Smoothly recenter between questions rather than leaving the player
   // stranded wherever they last panned.
   useEffect(() => {
@@ -77,7 +94,7 @@ export function WorldMap({
       return;
     }
     setCenter(DEFAULT_CENTER);
-    setZoom(DEFAULT_ZOOM);
+    setZoom(defaultZoomRef.current);
   }, [resetSignal]);
 
   const resolveCode = useCallback(
@@ -90,14 +107,17 @@ export function WorldMap({
   const zoomOut = () => setZoom((z) => Math.max(z / 1.6, MIN_ZOOM));
   const resetView = () => {
     setCenter(DEFAULT_CENTER);
-    setZoom(DEFAULT_ZOOM);
+    setZoom(defaultZoomRef.current);
   };
 
   return (
     <div
       className="relative h-full w-full overflow-hidden rounded-2xl"
       style={{
-        background: "radial-gradient(120% 120% at 50% 20%, var(--map-ocean-2), var(--map-ocean-1))",
+        // A vertical gradient (rather than one anchored to a point) reads as
+        // "more ocean" in the letterboxed margins on any aspect ratio,
+        // instead of fading to near-black away from a fixed center.
+        background: "linear-gradient(180deg, var(--map-ocean-2), var(--map-ocean-1))",
       }}
     >
       <ComposableMap
@@ -110,6 +130,10 @@ export function WorldMap({
           zoom={zoom}
           minZoom={MIN_ZOOM}
           maxZoom={MAX_ZOOM}
+          translateExtent={[
+            [-200, -150],
+            [1000, 750],
+          ]}
           onMoveEnd={({ coordinates, zoom: z }) => {
             if (coordinates) setCenter(coordinates);
             if (z) setZoom(z);

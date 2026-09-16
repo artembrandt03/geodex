@@ -5,10 +5,14 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { useSession, signOut } from "next-auth/react";
+import { useNavVisibility } from "@/components/providers/NavVisibilityProvider";
 
 export function NavBar() {
   const { data: session, status } = useSession();
   const pathname = usePathname();
+  const { hidden } = useNavVisibility();
+
+  if (hidden) return null;
 
   return (
     <header className="relative z-20 border-b border-border bg-surface/70 backdrop-blur-md">

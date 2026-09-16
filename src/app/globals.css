@@ -178,31 +178,20 @@ body {
   animation: score-bump 0.35s ease-out;
 }
 
-/* Slow cross-drift for the setup screen's cloud layer */
-@keyframes drift {
+/* Clouds continuously crossing the setup screen, left to right */
+@keyframes drift-across {
   from {
-    transform: translateX(-10%);
+    transform: translateX(-150%);
   }
   to {
-    transform: translateX(10%);
+    transform: translateX(calc(100vw + 150%));
   }
 }
 
-.animate-drift {
-  animation: drift 60s ease-in-out infinite alternate;
-}
-
-@keyframes drift-slow {
-  from {
-    transform: translateX(8%);
-  }
-  to {
-    transform: translateX(-8%);
-  }
-}
-
-.animate-drift-slow {
-  animation: drift-slow 90s ease-in-out infinite alternate;
+.animate-drift-across {
+  animation-name: drift-across;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
 }
 
 /* Twinkling stars in the hero scene */

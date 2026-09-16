@@ -20,9 +20,11 @@ const NARROW_BREAKPOINT_PX = 640;
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 8;
 
-function getDefaultZoomForViewport() {
-  if (typeof window === "undefined") return DEFAULT_ZOOM;
-  return window.innerWidth < NARROW_BREAKPOINT_PX ? NARROW_VIEWPORT_ZOOM : DEFAULT_ZOOM;
+function getDefaultZoomForViewport(baseZoom: number) {
+  if (typeof window === "undefined") return baseZoom;
+  return window.innerWidth < NARROW_BREAKPOINT_PX
+    ? Math.max(baseZoom, NARROW_VIEWPORT_ZOOM)
+    : baseZoom;
 }
 
 const COLORS = {
@@ -45,6 +47,10 @@ export interface WorldMapProps {
   onCountryClick?: (code: string | null) => void;
   /** Changing this value smoothly recenters the map to the default view (e.g. per question). */
   resetSignal?: string | number;
+  /** Overrides the resting zoom level (e.g. a closer view for a purely decorative map). */
+  defaultZoom?: number;
+  /** Overrides the resting center coordinates ([longitude, latitude]). */
+  defaultCenter?: [number, number];
 }
 
 /** World map on an equirectangular (cylindrical) projection — pannable and zoomable. */
@@ -55,17 +61,22 @@ export function WorldMap({
   feedbackCorrect,
   onCountryClick,
   resetSignal,
+  defaultZoom,
+  defaultCenter,
 }: WorldMapProps) {
+  const restCenter = defaultCenter ?? DEFAULT_CENTER;
+  const restZoom = defaultZoom ?? DEFAULT_ZOOM;
+
   const [codeByNumericId, setCodeByNumericId] = useState<Record<string, string> | null>(
     null,
   );
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
-  const [center, setCenter] = useState<[number, number]>(DEFAULT_CENTER);
-  const [zoom, setZoom] = useState(DEFAULT_ZOOM);
+  const [center, setCenter] = useState<[number, number]>(restCenter);
+  const [zoom, setZoom] = useState(restZoom);
   const isFirstResetSignal = useRef(true);
-  // Server-rendered default is always 1 (no window); a mount-time effect
+  // Server-rendered default has no window to check; a mount-time effect
   // below adjusts this for narrow viewports so the map doesn't letterbox.
-  const defaultZoomRef = useRef(DEFAULT_ZOOM);
+  const defaultZoomRef = useRef(restZoom);
 
   useEffect(() => {
     let cancelled = false;
@@ -82,8 +93,9 @@ export function WorldMap({
   // Pick a closer default zoom on narrow (mostly mobile/portrait) viewports
   // so the equirectangular projection doesn't leave huge empty margins.
   useEffect(() => {
-    defaultZoomRef.current = getDefaultZoomForViewport();
+    defaultZoomRef.current = getDefaultZoomForViewport(restZoom);
     setZoom(defaultZoomRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Smoothly recenter between questions rather than leaving the player
@@ -93,8 +105,9 @@ export function WorldMap({
       isFirstResetSignal.current = false;
       return;
     }
-    setCenter(DEFAULT_CENTER);
+    setCenter(restCenter);
     setZoom(defaultZoomRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resetSignal]);
 
   const resolveCode = useCallback(
@@ -106,7 +119,7 @@ export function WorldMap({
   const zoomIn = () => setZoom((z) => Math.min(z * 1.6, MAX_ZOOM));
   const zoomOut = () => setZoom((z) => Math.max(z / 1.6, MIN_ZOOM));
   const resetView = () => {
-    setCenter(DEFAULT_CENTER);
+    setCenter(restCenter);
     setZoom(defaultZoomRef.current);
   };
 

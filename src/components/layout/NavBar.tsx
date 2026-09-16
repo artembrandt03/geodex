@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { useSession, signOut } from "next-auth/react";
@@ -18,7 +19,7 @@ export function NavBar() {
             transition={{ type: "spring", stiffness: 300, damping: 12 }}
             className="inline-block"
           >
-            🌍
+            <Image src="/images/earth.png" alt="" width={24} height={24} priority />
           </motion.span>
           Geodex
         </Link>

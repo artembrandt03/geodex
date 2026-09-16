@@ -45,20 +45,20 @@ No hard time limit per question — players can take as long as they want.
 ## Branch strategy
 
 ```
-mvp -> dev -> main
+v-1.0 -> dev -> main
 ```
 
 - `main` — production, deploys via Netlify.
 - `dev` — integration branch.
-- `mvp` — current active development branch for the MVP. Future work uses similarly named feature/version branches merging into `dev`, then `dev` into `main`.
+- `v-1.0` — current active development branch, working toward the project's first tagged release. Superseded `mvp` (merged and retired) once the MVP itself was done. Future work uses similarly named version/feature branches merging into `dev`, then `dev` into `main` — always through a PR (`gh pr create` / `gh pr merge`), never a direct fast-forward push, even though `dev`/`main` haven't diverged from each other so far.
 
-Claude builds the MVP end-to-end on the `mvp` branch. Commit attribution: `Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>`.
+Claude builds each version end-to-end on its branch. Commit attribution: `Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>`. `gh` CLI is installed and authenticated (as the user) for PR work.
 
 ### Commit conventions
 
-- Small, modular commits — roughly what a developer would write in 15–30 minutes, or one sub-feature / ~100 lines at a time. No giant catch-all commits.
+- Small, modular commits — at least every ~5 minutes of work or ~100 lines, whichever comes first. No giant catch-all commits.
 - Conventional commit prefixes: `feat/`, `fix/`, `chore/`, `docs/`, `refactor/`, `test/` (as scope prefixes in the branch/commit subject, e.g. `feat: add country selection logic`).
-- Push to `origin/mvp` regularly as work lands.
+- Push to the current working branch (origin) regularly as work lands.
 - Never commit secrets. `.env*` (except `.env.example`), DB credentials, and auth secrets are git-ignored — verify before every commit that nothing sensitive is staged.
 
 ## Status log
@@ -69,6 +69,8 @@ Keep this short — a running log of what's done, not a design doc. Prune entrie
 - 2026-09-11: Next.js app scaffolded (App Router, TS, Tailwind). Local Postgres via Docker Compose (host port 5442 — 5432 is taken by other local projects). Prisma schema (User/Country/GameResult) + initial migration. Country table seeded from world-atlas TopoJSON with curated Easy/Medium/Hard tiers (195 countries: 59/82/54). Map data copied to `public/data/countries-50m.json`. Pinned prisma/@prisma-client to 6.12.0 (newer versions have unresolvable peer deps or high-severity transitive vulns).
 - 2026-09-11: **MVP feature-complete and verified end-to-end in-browser.** Built: Auth.js credentials auth (register/login/guest), WorldMap (react-simple-maps, equirectangular), scoring engine + tests, round game loop (`useRound` hook) covering both modes, home/play/leaderboard pages, and the full API surface (`/api/rounds/start`, `/api/rounds/complete`, `/api/leaderboard`, `/api/countries`, `/api/register`). Manually tested: NAME mode (correct/incorrect scoring, decay curve), SHAPE mode (typed-answer matching via normalizeAnswer), signed-in round persisting to the leaderboard, guest round correctly *not* persisting. `npm run lint`, `tsc --noEmit`, `npm test`, and `npm run build` all pass clean. Not yet done: production DB + Netlify deploy (needs the user — see "Local development" below), polish/responsive pass, additional test coverage beyond scoring/normalization.
 - 2026-09-11: **Visual/UX overhaul.** New dark "atlas at night" design system (CSS custom properties in globals.css, Space Grotesk display font), framer-motion throughout (button/card hover-tap, score count-up, round-summary confetti + performance message). WorldMap is now full-bleed and pannable/zoomable (react-simple-maps `ZoomableGroup`, graticule, bounded pan, auto-recenter per question, closer default zoom on narrow viewports to reduce letterboxing). All pages restyled to match; em dashes removed from user-facing copy. Fixed a critical bug (see below) where the round could freeze permanently after the second answered question.
+- 2026-09-11: MVP merged `mvp -> dev -> main` **through actual GitHub PRs** (#1, #2) rather than direct fast-forward pushes — installed and authenticated the `gh` CLI for this.
+- 2026-09-16: **Second design pivot: antique-cartography aesthetic**, replacing the dark navy/teal theme entirely (still token-only — every component already read color through globals.css's custom properties, so no per-component edits were needed beyond the map's own contrast fix). Parchment/sepia/brass palette, Cinzel display font, land/ocean given more contrast after the first pass made them too similar (inked-brown land vs. pale parchment sea). Added a three-stage landing flow on `/`: a space-themed hero (twinkling star field, the user's rotating-earth WebP — re-encoded from their GIF with the white background keyed to alpha — title, tagline, developer credit link to artembrandt.ca) that zooms into a setup screen (the mode/difficulty/round-length picker staged as a glass panel over a static WorldMap backdrop with a drifting CloudLayer), which itself zooms into `/play` on start. Transitions use a controlled framer-motion `animate` prop on a stably-mounted element rather than AnimatePresence exit animations, per the caution below. Branch strategy moved from `mvp` to versioned branches (`v-1.0` first), still merged to `dev`/`main` via PRs.
 
 ## Local development
 

@@ -23,11 +23,12 @@
   --danger: #8b3a3a;
   --danger-strong: #742f2f;
 
-  /* Map — aged paper ocean, ochre/tan landmasses, ink borders */
-  --map-ocean-1: #d9c89c;
-  --map-ocean-2: #c9b481;
-  --map-land: #b99a63;
-  --map-land-hover: #a88950;
+  /* Map — pale parchment sea, inked/shaded brown landmasses (like an
+     engraved atlas: blank paper for water, hachured relief for land) */
+  --map-ocean-1: #ecdfc0;
+  --map-ocean-2: #ddc99a;
+  --map-land: #8a6a3f;
+  --map-land-hover: #71552f;
   --map-border: #3b2a1a;
 
   /* Space hero scene — the one deliberately dark surface in the app */

@@ -92,7 +92,13 @@ export function useRound(config: RoundConfig | null) {
         const elapsedMs = Date.now() - questionStartedAt.current;
         const correct = guessedCode !== null && guessedCode === target.code;
         const score = scoreGuess(correct, elapsedMs);
-        const outcome: QuestionOutcome = { code: target.code, correct, score, elapsedMs };
+        const outcome: QuestionOutcome = {
+          code: target.code,
+          guessedCode,
+          correct,
+          score,
+          elapsedMs,
+        };
 
         return {
           ...s,

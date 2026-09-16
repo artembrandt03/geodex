@@ -17,7 +17,10 @@ export interface RoundQuestion {
 
 /** Outcome of one answered question, computed client-side. */
 export interface QuestionOutcome {
+  /** The target's code — used to highlight the correct country on the map. */
   code: string;
+  /** What the player actually guessed (null if unresolved/no match), for the feedback message. */
+  guessedCode: string | null;
   correct: boolean;
   score: number;
   elapsedMs: number;

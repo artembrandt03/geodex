@@ -76,14 +76,15 @@ function ActiveRound({
   const [guessInput, setGuessInput] = useState("");
   const [countryNames, setCountryNames] = useState<{ code: string; name: string }[]>([]);
 
+  // Fetched for both modes: SHAPE needs it for the autocomplete list, NAME
+  // needs it to name whatever country the player mis-clicked in feedback.
   useEffect(() => {
-    if (config.mode !== "SHAPE") return;
     fetch("/api/countries")
       .then((res) => res.json())
       .then((data: { countries: { code: string; name: string }[] }) =>
         setCountryNames(data.countries),
       );
-  }, [config.mode]);
+  }, []);
 
   if (state.status === "loading") {
     return (
@@ -106,6 +107,9 @@ function ActiveRound({
 
   const current = state.questions[state.currentIndex];
   const isRevealing = state.status === "revealing";
+  const guessedName = state.lastOutcome?.guessedCode
+    ? (countryNames.find((c) => c.code === state.lastOutcome!.guessedCode)?.name ?? null)
+    : null;
 
   function handleShapeSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -212,17 +216,27 @@ function ActiveRound({
         {isRevealing && state.lastOutcome && (
           <motion.div
             key={state.currentIndex}
-            initial={{ opacity: 0, y: 10, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            className={`pointer-events-auto rounded-xl border px-5 py-2.5 text-center font-medium shadow-xl backdrop-blur-md ${
-              state.lastOutcome.correct
-                ? "border-success/40 bg-success/15 text-success"
-                : "border-danger/40 bg-danger/15 text-danger"
+            initial={{ opacity: 0, y: 10, scale: 0.8, rotate: state.lastOutcome.correct ? -4 : 4 }}
+            animate={{ opacity: 1, y: 0, scale: 1, rotate: state.lastOutcome.correct ? -2 : 2 }}
+            transition={{ type: "spring", stiffness: 380, damping: 20 }}
+            className={`pointer-events-auto flex items-center gap-3 rounded-lg border-2 bg-surface/90 px-5 py-2.5 shadow-xl backdrop-blur-md ${
+              state.lastOutcome.correct ? "border-success text-success" : "border-danger text-danger"
             }`}
           >
-            {state.lastOutcome.correct
-              ? `Correct! +${state.lastOutcome.score} points`
-              : `Not quite, it was ${current.name}`}
+            <span
+              className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 ${
+                state.lastOutcome.correct ? "border-success" : "border-danger"
+              }`}
+            >
+              {state.lastOutcome.correct ? <CheckMark /> : <CrossMark />}
+            </span>
+            <span className="font-display font-semibold">
+              {state.lastOutcome.correct
+                ? `Correct! +${state.lastOutcome.score} points`
+                : guessedName
+                  ? `Not quite, that's ${guessedName}`
+                  : "Not quite!"}
+            </span>
           </motion.div>
         )}
 
@@ -258,6 +272,22 @@ function ActiveRound({
         )}
       </div>
     </div>
+  );
+}
+
+function CheckMark() {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth={2.5}>
+      <path d="M4 10.5l4 4 8-9" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function CrossMark() {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth={2.5}>
+      <path d="M5 5l10 10M15 5L5 15" strokeLinecap="round" />
+    </svg>
   );
 }
 

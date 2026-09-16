@@ -8,6 +8,7 @@ import { useSession } from "next-auth/react";
 import { ROUND_LENGTHS } from "@/lib/game/types";
 import { WorldMap } from "@/components/game/WorldMap";
 import { CloudLayer } from "./CloudLayer";
+import { CompassRose } from "./CompassRose";
 
 const MODES = [
   {
@@ -96,8 +97,10 @@ export function SetupScene() {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: "easeOut" }}
-          className="flex w-full max-w-2xl flex-col gap-8 rounded-2xl border border-border bg-surface/80 p-8 shadow-2xl backdrop-blur-md"
+          className="relative flex w-full max-w-2xl flex-col gap-8 overflow-hidden rounded-2xl border border-border bg-surface/80 p-8 shadow-2xl backdrop-blur-md"
         >
+          <CompassRose className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 text-muted/10" />
+
           <div className="text-center">
             <h1 className="flex items-center justify-center gap-2 font-display text-4xl font-bold tracking-tight">
               <Image src="/images/earth.png" alt="" width={40} height={40} />

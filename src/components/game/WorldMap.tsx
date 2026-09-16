@@ -224,10 +224,10 @@ function MapButton({
       type="button"
       onClick={onClick}
       aria-label={label}
-      whileHover={{ scale: 1.08 }}
+      whileHover={{ scale: 1.08, rotate: 3 }}
       whileTap={{ scale: 0.92 }}
-      className={`flex items-center justify-center rounded-full border border-border-strong bg-surface/80 font-semibold text-foreground shadow-lg backdrop-blur-sm ${
-        small ? "h-8 w-8 text-sm" : "h-10 w-10 text-xl"
+      className={`flex items-center justify-center rounded-full border-2 border-accent-strong bg-surface/90 font-display font-bold text-primary-hover shadow-[inset_0_0_0_2px_var(--surface-2)] backdrop-blur-sm ${
+        small ? "h-8 w-8 text-sm" : "h-11 w-11 text-xl"
       }`}
     >
       {children}

@@ -1,34 +1,39 @@
 @import "tailwindcss";
 
 :root {
-  /* Base surfaces — deep atlas-at-night navy, not flat black */
-  --background: #090d16;
-  --surface: #111826;
-  --surface-2: #182136;
-  --border: rgba(148, 163, 184, 0.12);
-  --border-strong: rgba(148, 163, 184, 0.22);
+  /* Base surfaces — aged parchment/atlas paper, not a tech-app neutral */
+  --background: #e9dcb9;
+  --surface: #f3e8ce;
+  --surface-2: #e2d2a4;
+  --border: rgba(59, 42, 26, 0.22);
+  --border-strong: rgba(59, 42, 26, 0.4);
 
-  /* Text */
-  --foreground: #eef1f7;
-  --muted: #8b96ab;
-  --muted-2: #5f6b82;
+  /* Text — deep sepia ink */
+  --foreground: #2b1d10;
+  --muted: #6b5636;
+  --muted-2: #8a7550;
 
-  /* Brand + semantic */
-  --primary: #2dd4bf;
-  --primary-hover: #22b8a4;
-  --primary-foreground: #04211d;
-  --accent: #f5b942;
-  --accent-strong: #f59e0b;
-  --success: #34d399;
-  --danger: #f87171;
-  --danger-strong: #ef4444;
+  /* Brand + semantic — brass instrument, wax-seal red, chart green */
+  --primary: #9c7327;
+  --primary-hover: #7f5d1e;
+  --primary-foreground: #fbf3dd;
+  --accent: #c99a3f;
+  --accent-strong: #b3822c;
+  --success: #3f6b3f;
+  --danger: #8b3a3a;
+  --danger-strong: #742f2f;
 
-  /* Map */
-  --map-ocean-1: #0a1220;
-  --map-ocean-2: #0d1830;
-  --map-land: #29354d;
-  --map-land-hover: #384562;
-  --map-border: #090d16;
+  /* Map — aged paper ocean, ochre/tan landmasses, ink borders */
+  --map-ocean-1: #d9c89c;
+  --map-ocean-2: #c9b481;
+  --map-land: #b99a63;
+  --map-land-hover: #a88950;
+  --map-border: #3b2a1a;
+
+  /* Space hero scene — the one deliberately dark surface in the app */
+  --space-bg-1: #060912;
+  --space-bg-2: #0c1730;
+  --space-star: #f3ead2;
 }
 
 @theme inline {
@@ -58,13 +63,19 @@
 }
 
 html {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   min-height: 100vh;
+  /* Faint aged-paper mottling instead of a flat fill */
+  background-image:
+    radial-gradient(ellipse 80% 60% at 15% 10%, rgba(59, 42, 26, 0.05), transparent 60%),
+    radial-gradient(ellipse 70% 50% at 90% 80%, rgba(59, 42, 26, 0.06), transparent 60%),
+    radial-gradient(ellipse 60% 60% at 50% 50%, rgba(255, 250, 230, 0.25), transparent 70%);
+  background-attachment: fixed;
 }
 
 ::selection {
@@ -72,7 +83,7 @@ body {
   color: var(--primary-foreground);
 }
 
-/* Thin, unobtrusive scrollbar that fits the dark theme */
+/* Thin, unobtrusive scrollbar that fits the parchment theme */
 * {
   scrollbar-width: thin;
   scrollbar-color: var(--border-strong) transparent;
@@ -164,4 +175,46 @@ body {
 
 .animate-score-bump {
   animation: score-bump 0.35s ease-out;
+}
+
+/* Slow cross-drift for the setup screen's cloud layer */
+@keyframes drift {
+  from {
+    transform: translateX(-10%);
+  }
+  to {
+    transform: translateX(10%);
+  }
+}
+
+.animate-drift {
+  animation: drift 60s ease-in-out infinite alternate;
+}
+
+@keyframes drift-slow {
+  from {
+    transform: translateX(8%);
+  }
+  to {
+    transform: translateX(-8%);
+  }
+}
+
+.animate-drift-slow {
+  animation: drift-slow 90s ease-in-out infinite alternate;
+}
+
+/* Twinkling stars in the hero scene */
+@keyframes twinkle {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.animate-twinkle {
+  animation: twinkle 3s ease-in-out infinite;
 }

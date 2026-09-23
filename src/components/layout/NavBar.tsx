@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { useSession, signOut } from "next-auth/react";
@@ -22,9 +23,7 @@ export function NavBar() {
             transition={{ type: "spring", stiffness: 300, damping: 12 }}
             className="inline-block"
           >
-            {/* eslint-disable-next-line @next/next/no-img-element -- next/image's
-                optimizer can strip animation frames from an animated webp */}
-            <img src="/images/earth-rotating.webp" alt="" width={24} height={24} className="rounded-full" />
+            <Image src="/images/earth.png" alt="" width={24} height={24} />
           </motion.span>
           Geodex
         </Link>

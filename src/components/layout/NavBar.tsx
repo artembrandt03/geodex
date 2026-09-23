@@ -17,7 +17,7 @@ export function NavBar() {
   return (
     <header className="relative z-20 border-b border-border bg-surface/70 backdrop-blur-md">
       <nav className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
-        <Link href="/" className="flex items-center gap-2 font-display text-lg font-bold tracking-tight">
+        <Link href="/setup" className="flex items-center gap-2 font-display text-lg font-bold tracking-tight">
           <motion.span
             whileHover={{ rotate: 15, scale: 1.1 }}
             transition={{ type: "spring", stiffness: 300, damping: 12 }}

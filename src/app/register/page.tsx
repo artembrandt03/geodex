@@ -64,7 +64,7 @@ export default function RegisterPage() {
           <h1 className="font-display text-2xl font-bold">Create an account</h1>
           <p className="mt-2 text-sm text-muted">
             Register to save your scores on the leaderboard. You can also{" "}
-            <Link href="/" className="text-primary underline underline-offset-4">
+            <Link href="/setup" className="text-primary underline underline-offset-4">
               play as a guest
             </Link>{" "}
             without an account.

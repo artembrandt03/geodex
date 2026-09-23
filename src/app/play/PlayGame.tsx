@@ -45,7 +45,7 @@ export function PlayGame() {
     return (
       <div className="mx-auto max-w-md px-4 py-16 text-center animate-fade-up">
         <p className="mb-4 text-muted">That game setup isn&apos;t valid.</p>
-        <Link href="/" className="text-primary underline underline-offset-4">
+        <Link href="/setup" className="text-primary underline underline-offset-4">
           Back to setup
         </Link>
       </div>
@@ -98,7 +98,7 @@ function ActiveRound({
     return (
       <div className="mx-auto max-w-md px-4 py-16 text-center animate-fade-up">
         <p className="mb-4 text-danger">{state.errorMessage}</p>
-        <Link href="/" className="text-primary underline underline-offset-4">
+        <Link href="/setup" className="text-primary underline underline-offset-4">
           Back to setup
         </Link>
       </div>

@@ -42,12 +42,26 @@ function getDefaultZoomForViewport(baseZoom: number) {
 function computeFocusView(features: Feature<Geometry>[]): { center: [number, number]; zoom: number } | null {
   if (features.length === 0) return null;
 
+  const bounds = features.map((f) => geoBounds(f));
+
+  // d3-geo signals an antimeridian-crossing feature (Russia, Fiji, ...) by
+  // returning a minimum longitude numerically greater than the maximum
+  // (the true extent wraps through 180°). Merging that with a plain min/max
+  // against another country silently produces a bogus, wildly-off-target
+  // box (confirmed live: a Canada/Russia reveal centered the zoom entirely
+  // inside Canada, cutting Russia off screen). Rather than implement
+  // general circular-arc merging for what's a handful of countries,
+  // fall back to the default full-world framing — at zoom 1 both countries
+  // are already visible, just not tightly fit.
+  if (bounds.some(([[lon0], [lon1]]) => lon0 > lon1)) {
+    return { center: DEFAULT_CENTER, zoom: MIN_ZOOM };
+  }
+
   let minLon = Infinity;
   let minLat = Infinity;
   let maxLon = -Infinity;
   let maxLat = -Infinity;
-  for (const f of features) {
-    const [[lon0, lat0], [lon1, lat1]] = geoBounds(f);
+  for (const [[lon0, lat0], [lon1, lat1]] of bounds) {
     minLon = Math.min(minLon, lon0);
     minLat = Math.min(minLat, lat0);
     maxLon = Math.max(maxLon, lon1);

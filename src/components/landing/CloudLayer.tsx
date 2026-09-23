@@ -20,7 +20,8 @@ interface CloudSpec {
   direction: Direction;
 }
 
-// Deterministic placement/timing (no Math.random — see StarField for why).
+// Deterministic placement/timing — no Math.random, so this stays pure to
+// render (React's purity lint flags impure calls during render).
 // A wide mix of heights/sizes/speeds/directions so it reads as "many clouds
 // drifting through the sky" rather than a handful of repeating shapes.
 const CLOUDS: CloudSpec[] = [

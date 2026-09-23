@@ -152,8 +152,13 @@ export function Particles({
       mouseRef.current = { x, y };
     };
 
+    // Listens on window rather than the container: the container (and its
+    // canvas) are pointer-events:none, since this is a purely decorative
+    // background layer that must never intercept clicks meant for the UI
+    // above it — a WebGL canvas can end up compositing above regular DOM
+    // content regardless of z-index/DOM order in some environments.
     if (moveParticlesOnHover) {
-      container.addEventListener("mousemove", handleMouseMove);
+      window.addEventListener("mousemove", handleMouseMove);
     }
 
     const count = particleCount;
@@ -233,7 +238,7 @@ export function Particles({
     return () => {
       window.removeEventListener("resize", resize);
       if (moveParticlesOnHover) {
-        container.removeEventListener("mousemove", handleMouseMove);
+        window.removeEventListener("mousemove", handleMouseMove);
       }
       cancelAnimationFrame(animationFrameId);
       if (container.contains(gl.canvas)) {
@@ -255,5 +260,10 @@ export function Particles({
     pixelRatio,
   ]);
 
-  return <div ref={containerRef} className={`relative h-full w-full ${className ?? ""}`} />;
+  return (
+    <div
+      ref={containerRef}
+      className={`pointer-events-none relative h-full w-full ${className ?? ""}`}
+    />
+  );
 }

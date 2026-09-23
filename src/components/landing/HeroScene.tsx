@@ -20,15 +20,17 @@ export function HeroScene({ transitioning, onPlay }: HeroSceneProps) {
       transition={{ duration: 0.9, ease: [0.7, 0, 0.9, 0.4] }}
       className="relative flex h-full w-full flex-col items-center justify-center overflow-hidden bg-black px-4"
     >
-      <div className="absolute inset-0">
+      <div className="pointer-events-none absolute inset-0">
         <Particles
           particleColors={PARTICLE_COLORS}
-          particleCount={220}
+          particleCount={440}
           particleSpread={12}
           speed={0.08}
           particleBaseSize={80}
           alphaParticles
           disableRotation={false}
+          moveParticlesOnHover
+          particleHoverFactor={2}
         />
       </div>
 

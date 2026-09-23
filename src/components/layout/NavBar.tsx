@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { useSession, signOut } from "next-auth/react";
@@ -23,7 +22,9 @@ export function NavBar() {
             transition={{ type: "spring", stiffness: 300, damping: 12 }}
             className="inline-block"
           >
-            <Image src="/images/earth.png" alt="" width={24} height={24} priority />
+            {/* eslint-disable-next-line @next/next/no-img-element -- next/image's
+                optimizer can strip animation frames from an animated webp */}
+            <img src="/images/earth-rotating.webp" alt="" width={24} height={24} className="rounded-full" />
           </motion.span>
           Geodex
         </Link>
@@ -31,11 +32,12 @@ export function NavBar() {
         <div className="flex items-center gap-5 text-sm">
           <Link
             href="/leaderboard"
-            className={`transition-colors hover:text-foreground ${
-              pathname === "/leaderboard" ? "font-medium text-foreground" : "text-muted"
+            className={`transition-opacity hover:opacity-80 ${
+              pathname === "/leaderboard" ? "opacity-100" : "opacity-90"
             }`}
           >
-            Leaderboard
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/images/leaderboard.png" alt="Leaderboard" className="h-7 w-auto" />
           </Link>
 
           {status === "loading" ? null : session?.user ? (

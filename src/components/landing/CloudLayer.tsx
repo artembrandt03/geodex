@@ -24,7 +24,7 @@ interface CloudSpec {
 // render (React's purity lint flags impure calls during render).
 // A wide mix of heights/sizes/speeds/directions so it reads as "many clouds
 // drifting through the sky" rather than a handful of repeating shapes.
-const CLOUD_COUNT = 24;
+const CLOUD_COUNT = 48;
 
 const CLOUDS: CloudSpec[] = Array.from({ length: CLOUD_COUNT }, (_, i) => ({
   id: i,

@@ -37,6 +37,23 @@ const EMBLEM_SIZES = {
   },
 };
 
+const MAP_PRELOAD_URLS = ["/data/countries-50m.json", "/data/country-codes.json"];
+
+/**
+ * Warms the browser's HTTP cache for the setup screen's map data while the
+ * hero scene is still showing, so WorldMap's own fetches resolve instantly
+ * once the player reaches the setup screen instead of flashing in blank.
+ */
+function useMapPreload() {
+  useEffect(() => {
+    for (const url of MAP_PRELOAD_URLS) {
+      fetch(url)
+        .then((res) => res.blob())
+        .catch(() => {});
+    }
+  }, []);
+}
+
 function useEmblemSize() {
   // Server-rendered default is "desktop" (no window); a mount-time effect
   // (plus a resize listener) picks "mobile" for narrow viewports, matching
@@ -58,6 +75,7 @@ function useEmblemSize() {
 /** Opening scene: out in space, the earth turning slowly. */
 export function HeroScene({ transitioning, onPlay }: HeroSceneProps) {
   const size = useEmblemSize();
+  useMapPreload();
 
   return (
     <motion.div

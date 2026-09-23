@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Particles } from "./Particles";
 import { ArcText } from "./ArcText";
@@ -11,9 +12,53 @@ export interface HeroSceneProps {
 }
 
 const PARTICLE_COLORS = ["#ffffff", "#f3ead2", "#9db4ff"];
+const NARROW_BREAKPOINT_PX = 640;
+
+const EMBLEM_SIZES = {
+  desktop: {
+    box: { width: 640, height: 520 },
+    earth: 280,
+    titleRadius: 175,
+    titleHalfSpan: 24,
+    titleFontClass: "text-5xl",
+    descRadius: 225,
+    descHalfSpan: 52,
+    descFontClass: "text-base",
+  },
+  mobile: {
+    box: { width: 420, height: 340 },
+    earth: 170,
+    titleRadius: 115,
+    titleHalfSpan: 24,
+    titleFontClass: "text-3xl",
+    descRadius: 150,
+    descHalfSpan: 52,
+    descFontClass: "text-xs",
+  },
+};
+
+function useEmblemSize() {
+  // Server-rendered default is "desktop" (no window); a mount-time effect
+  // (plus a resize listener) picks "mobile" for narrow viewports, matching
+  // the same responsive pattern WorldMap uses for its default zoom.
+  const [size, setSize] = useState(EMBLEM_SIZES.desktop);
+
+  useEffect(() => {
+    const update = () => {
+      setSize(window.innerWidth < NARROW_BREAKPOINT_PX ? EMBLEM_SIZES.mobile : EMBLEM_SIZES.desktop);
+    };
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+
+  return size;
+}
 
 /** Opening scene: out in space, the earth turning slowly. */
 export function HeroScene({ transitioning, onPlay }: HeroSceneProps) {
+  const size = useEmblemSize();
+
   return (
     <motion.div
       animate={transitioning ? { scale: 7, opacity: 0 } : { scale: 1, opacity: 1 }}
@@ -41,14 +86,14 @@ export function HeroScene({ transitioning, onPlay }: HeroSceneProps) {
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.8, ease: "easeOut" }}
         className="relative"
-        style={{ width: 420, height: 340 }}
+        style={{ width: size.box.width, height: size.box.height }}
       >
         <ArcText
           text="GEODEX"
-          radius={115}
-          halfSpanDeg={24}
+          radius={size.titleRadius}
+          halfSpanDeg={size.titleHalfSpan}
           position="top"
-          charClassName="font-display text-3xl font-bold"
+          charClassName={`font-display font-bold ${size.titleFontClass}`}
           className="text-[var(--space-star)]"
         />
 
@@ -56,18 +101,18 @@ export function HeroScene({ transitioning, onPlay }: HeroSceneProps) {
         <img
           src="/images/earth-rotating.webp"
           alt="A slowly rotating illustration of Earth"
-          width={170}
-          height={170}
+          width={size.earth}
+          height={size.earth}
           className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
           style={{ filter: "drop-shadow(0 0 55px rgba(140, 180, 255, 0.35))" }}
         />
 
         <ArcText
           text="A GEOGRAPHY GUESSING GAME"
-          radius={150}
-          halfSpanDeg={52}
+          radius={size.descRadius}
+          halfSpanDeg={size.descHalfSpan}
           position="bottom"
-          charClassName="text-xs font-semibold tracking-wide"
+          charClassName={`font-semibold tracking-wide ${size.descFontClass}`}
           className="text-white/70"
         />
       </motion.div>
@@ -79,14 +124,14 @@ export function HeroScene({ transitioning, onPlay }: HeroSceneProps) {
         href="https://artembrandt.ca"
         target="_blank"
         rel="noopener noreferrer"
-        className="mt-2 flex items-center gap-2 text-base font-medium text-white/85 transition-colors hover:text-white sm:text-lg"
+        className="mt-4 flex items-center gap-2 text-lg font-medium text-white/85 transition-colors hover:text-white sm:text-xl"
       >
         Developed by Artem Brandt
         <svg
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 20 20"
           fill="currentColor"
-          className="h-4 w-4"
+          className="h-5 w-5"
         >
           <path d="M7 3a1 1 0 000 2h4.586L4.293 12.293a1 1 0 101.414 1.414L13 6.414V11a1 1 0 102 0V4a1 1 0 00-1-1H7z" />
         </svg>
@@ -99,7 +144,7 @@ export function HeroScene({ transitioning, onPlay }: HeroSceneProps) {
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={onPlay}
-        className="mt-6 rounded-xl bg-primary px-10 py-3.5 text-lg font-semibold text-primary-foreground shadow-lg shadow-black/30"
+        className="mt-8 rounded-xl bg-primary px-12 py-4 text-xl font-semibold text-primary-foreground shadow-lg shadow-black/30"
       >
         Play
       </motion.button>

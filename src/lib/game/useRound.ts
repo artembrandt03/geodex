@@ -21,8 +21,6 @@ export interface RoundState {
   saved: boolean;
 }
 
-const REVEAL_DELAY_MS = 1200;
-
 /** Drives a full round: fetches questions, scores guesses, and (if signed in) saves the result. */
 export function useRound(config: RoundConfig | null) {
   const { data: session } = useSession();
@@ -39,7 +37,6 @@ export function useRound(config: RoundConfig | null) {
   });
 
   const questionStartedAt = useRef<number>(0);
-  const advanceTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!config) return;
@@ -79,7 +76,6 @@ export function useRound(config: RoundConfig | null) {
 
     return () => {
       cancelled = true;
-      if (advanceTimeout.current) clearTimeout(advanceTimeout.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [config?.mode, config?.difficulty, config?.roundLength]);
@@ -113,25 +109,20 @@ export function useRound(config: RoundConfig | null) {
     [],
   );
 
-  // Advance to the next question (or finish) after a brief reveal.
-  useEffect(() => {
-    if (state.status !== "revealing") return;
-
-    advanceTimeout.current = setTimeout(() => {
-      setState((s) => {
-        const nextIndex = s.currentIndex + 1;
-        if (nextIndex >= s.questions.length) {
-          return { ...s, status: "finished", lastOutcome: null };
-        }
-        questionStartedAt.current = Date.now();
-        return { ...s, status: "playing", currentIndex: nextIndex, lastOutcome: null };
-      });
-    }, REVEAL_DELAY_MS);
-
-    return () => {
-      if (advanceTimeout.current) clearTimeout(advanceTimeout.current);
-    };
-  }, [state.status]);
+  // Advance to the next question (or finish) once the player is done
+  // reviewing the reveal and clicks "Next question" — the round pauses
+  // here for as long as they like rather than auto-advancing on a timer.
+  const advance = useCallback(() => {
+    setState((s) => {
+      if (s.status !== "revealing") return s;
+      const nextIndex = s.currentIndex + 1;
+      if (nextIndex >= s.questions.length) {
+        return { ...s, status: "finished", lastOutcome: null };
+      }
+      questionStartedAt.current = Date.now();
+      return { ...s, status: "playing", currentIndex: nextIndex, lastOutcome: null };
+    });
+  }, []);
 
   // Persist the finished round for signed-in users.
   useEffect(() => {
@@ -156,5 +147,5 @@ export function useRound(config: RoundConfig | null) {
       });
   }, [state.status, state.saved, state.totalScore, state.correctCount, config, session?.user]);
 
-  return { state, submitGuess };
+  return { state, submitGuess, advance };
 }

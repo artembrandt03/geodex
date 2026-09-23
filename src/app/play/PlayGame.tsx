@@ -72,7 +72,7 @@ function ActiveRound({
   config: RoundConfig;
   onPlayAgain: () => void;
 }) {
-  const { state, submitGuess } = useRound(config);
+  const { state, submitGuess, advance } = useRound(config);
   const [guessInput, setGuessInput] = useState("");
   const [countryNames, setCountryNames] = useState<{ code: string; name: string }[]>([]);
 
@@ -127,8 +127,8 @@ function ActiveRound({
       <WorldMap
         interactive={config.mode === "NAME" && !isRevealing && state.status !== "finished"}
         highlightedCode={config.mode === "SHAPE" ? current?.code : null}
-        feedbackCode={state.lastOutcome?.code ?? null}
-        feedbackCorrect={state.lastOutcome?.correct}
+        correctCode={state.lastOutcome?.code ?? null}
+        guessedCode={state.lastOutcome?.guessedCode ?? null}
         resetSignal={state.currentIndex}
         onCountryClick={(code) => {
           if (config.mode === "NAME") submitGuess(code);
@@ -217,30 +217,49 @@ function ActiveRound({
           <motion.div
             key={state.currentIndex}
             initial={{ opacity: 0, y: 10, scale: 0.8, rotate: state.lastOutcome.correct ? -4 : 4 }}
-            animate={{ opacity: 1, y: 0, scale: 1, rotate: state.lastOutcome.correct ? -2 : 2 }}
+            animate={{ opacity: 1, y: 0, scale: 1, rotate: 0 }}
             transition={{ type: "spring", stiffness: 380, damping: 20 }}
-            className={`pointer-events-auto flex items-center gap-3 rounded-lg border-2 bg-surface/90 px-5 py-2.5 shadow-xl backdrop-blur-md ${
-              state.lastOutcome.correct ? "border-success text-success" : "border-danger text-danger"
-            }`}
+            className="pointer-events-auto flex flex-col items-center gap-3"
           >
-            <span
-              className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 ${
-                state.lastOutcome.correct ? "border-success" : "border-danger"
+            <div
+              className={`flex items-center gap-3 rounded-lg border-2 bg-surface/90 px-5 py-2.5 shadow-xl backdrop-blur-md ${
+                state.lastOutcome.correct ? "border-success text-success" : "border-danger text-danger"
               }`}
             >
-              {state.lastOutcome.correct ? <CheckMark /> : <CrossMark />}
-            </span>
-            <span className="font-display font-semibold">
-              {state.lastOutcome.correct
-                ? `Correct! +${state.lastOutcome.score} points`
-                : guessedName
-                  ? `Not quite, that's ${guessedName}`
-                  : "Not quite!"}
-            </span>
+              <span
+                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 ${
+                  state.lastOutcome.correct ? "border-success" : "border-danger"
+                }`}
+              >
+                {state.lastOutcome.correct ? <CheckMark /> : <CrossMark />}
+              </span>
+              <span className="font-display font-semibold">
+                {state.lastOutcome.correct ? (
+                  `Correct! +${state.lastOutcome.score} points`
+                ) : guessedName ? (
+                  <>
+                    Not quite, that&apos;s{" "}
+                    <strong className="underline decoration-2 underline-offset-2">{guessedName}</strong>
+                  </>
+                ) : (
+                  "Not quite!"
+                )}
+              </span>
+            </div>
+
+            <motion.button
+              type="button"
+              onClick={advance}
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.96 }}
+              className="rounded-lg bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground shadow-lg shadow-black/20"
+            >
+              {state.currentIndex + 1 >= config.roundLength ? "See results" : "Next question"}
+            </motion.button>
           </motion.div>
         )}
 
-        {config.mode === "SHAPE" && state.status !== "finished" && (
+        {config.mode === "SHAPE" && state.status !== "finished" && !isRevealing && (
           <form
             onSubmit={handleShapeSubmit}
             className="pointer-events-auto flex gap-2 rounded-xl border border-border bg-surface/85 p-2 shadow-xl backdrop-blur-md"

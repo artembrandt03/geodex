@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ComposableMap,
   Geographies,
@@ -9,6 +9,10 @@ import {
   ZoomableGroup,
 } from "react-simple-maps";
 import { motion } from "framer-motion";
+import { geoBounds, geoEquirectangular } from "d3-geo";
+import { feature } from "topojson-client";
+import type { Feature, Geometry } from "geojson";
+import type { GeometryCollection, Topology } from "topojson-specification";
 
 const GEOGRAPHY_URL = "/data/countries-50m.json";
 const COUNTRY_CODES_URL = "/data/country-codes.json";
@@ -20,11 +24,53 @@ const NARROW_BREAKPOINT_PX = 640;
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 8;
 
+// Matches ComposableMap's own defaults (it's never given a projectionConfig),
+// so projecting through this local instance lands on the same pixel
+// coordinates react-simple-maps uses internally.
+const VIEWBOX_WIDTH = 800;
+const VIEWBOX_HEIGHT = 600;
+const FOCUS_PADDING_PX = 70;
+
 function getDefaultZoomForViewport(baseZoom: number) {
   if (typeof window === "undefined") return baseZoom;
   return window.innerWidth < NARROW_BREAKPOINT_PX
     ? Math.max(baseZoom, NARROW_VIEWPORT_ZOOM)
     : baseZoom;
+}
+
+/** Fits the given countries' combined bounds on screen, for the post-guess reveal zoom. */
+function computeFocusView(features: Feature<Geometry>[]): { center: [number, number]; zoom: number } | null {
+  if (features.length === 0) return null;
+
+  let minLon = Infinity;
+  let minLat = Infinity;
+  let maxLon = -Infinity;
+  let maxLat = -Infinity;
+  for (const f of features) {
+    const [[lon0, lat0], [lon1, lat1]] = geoBounds(f);
+    minLon = Math.min(minLon, lon0);
+    minLat = Math.min(minLat, lat0);
+    maxLon = Math.max(maxLon, lon1);
+    maxLat = Math.max(maxLat, lat1);
+  }
+
+  const projection = geoEquirectangular().translate([VIEWBOX_WIDTH / 2, VIEWBOX_HEIGHT / 2]);
+  const topLeft = projection([minLon, maxLat]);
+  const bottomRight = projection([maxLon, minLat]);
+  if (!topLeft || !bottomRight) return null;
+
+  const boxWidth = Math.max(bottomRight[0] - topLeft[0], 1);
+  const boxHeight = Math.max(bottomRight[1] - topLeft[1], 1);
+  const zoom = Math.min(
+    (VIEWBOX_WIDTH - FOCUS_PADDING_PX * 2) / boxWidth,
+    (VIEWBOX_HEIGHT - FOCUS_PADDING_PX * 2) / boxHeight,
+    MAX_ZOOM,
+  );
+
+  return {
+    center: [(minLon + maxLon) / 2, (minLat + maxLat) / 2],
+    zoom: Math.max(zoom, MIN_ZOOM),
+  };
 }
 
 const COLORS = {
@@ -40,9 +86,10 @@ export interface WorldMapProps {
   interactive: boolean;
   /** Shape mode: the target country to highlight before the player answers. */
   highlightedCode?: string | null;
-  /** Country to color as feedback after a guess is submitted. */
-  feedbackCode?: string | null;
-  feedbackCorrect?: boolean;
+  /** The correct answer, colored green once a guess has been submitted. */
+  correctCode?: string | null;
+  /** What the player actually guessed, colored red if it differs from correctCode. */
+  guessedCode?: string | null;
   /** Fires with the clicked country's ISO alpha-3 code (or null if unresolved). */
   onCountryClick?: (code: string | null) => void;
   /** Changing this value smoothly recenters the map to the default view (e.g. per question). */
@@ -57,8 +104,8 @@ export interface WorldMapProps {
 export function WorldMap({
   interactive,
   highlightedCode,
-  feedbackCode,
-  feedbackCorrect,
+  correctCode,
+  guessedCode,
   onCountryClick,
   resetSignal,
   defaultZoom,
@@ -70,6 +117,10 @@ export function WorldMap({
   const [codeByNumericId, setCodeByNumericId] = useState<Record<string, string> | null>(
     null,
   );
+  const [featuresByNumericId, setFeaturesByNumericId] = useState<Record<
+    string,
+    Feature<Geometry>
+  > | null>(null);
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
   const [center, setCenter] = useState<[number, number]>(restCenter);
   const [zoom, setZoom] = useState(restZoom);
@@ -89,6 +140,70 @@ export function WorldMap({
       cancelled = true;
     };
   }, []);
+
+  // Parsed independently of <Geographies> (which fetches the same,
+  // browser-cached URL for rendering) so the reveal-zoom effect below can
+  // look up a country's geometry for bounds-fitting without threading state
+  // out of that component's render-prop.
+  useEffect(() => {
+    let cancelled = false;
+    fetch(GEOGRAPHY_URL)
+      .then((res) => res.json())
+      .then((topology: Topology) => {
+        if (cancelled) return;
+        const collection = feature(
+          topology,
+          topology.objects.countries as GeometryCollection,
+        );
+        const byId: Record<string, Feature<Geometry>> = {};
+        for (const f of collection.features) {
+          if (f.id !== undefined) byId[String(f.id)] = f;
+        }
+        setFeaturesByNumericId(byId);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const featuresByCode = useMemo(() => {
+    if (!codeByNumericId || !featuresByNumericId) return null;
+    const byCode: Record<string, Feature<Geometry>> = {};
+    for (const [numericId, code] of Object.entries(codeByNumericId)) {
+      const f = featuresByNumericId[numericId];
+      if (f) byCode[code] = f;
+    }
+    return byCode;
+  }, [codeByNumericId, featuresByNumericId]);
+
+  // Zoom to fit the reveal: just the correct country if the guess was
+  // right, or both the guess and the correct answer if it was wrong.
+  const focusCodes = useMemo(
+    () => Array.from(new Set([correctCode, guessedCode].filter((c): c is string => Boolean(c)))),
+    [correctCode, guessedCode],
+  );
+
+  // React's "adjust state during render" pattern (not an effect — see
+  // CLAUDE.md's note on why a plain useEffect here trips the
+  // react-hooks/set-state-in-effect lint rule) so the reveal-zoom applies
+  // the instant both the guess outcome and the map's geometry are ready,
+  // including the edge case where the geometry fetch is still in flight
+  // when the outcome first arrives.
+  const focusReadyKey = `${focusCodes.join(",")}|${featuresByCode ? "ready" : "pending"}`;
+  const [lastFocusReadyKey, setLastFocusReadyKey] = useState(focusReadyKey);
+  if (focusReadyKey !== lastFocusReadyKey) {
+    setLastFocusReadyKey(focusReadyKey);
+    if (focusCodes.length > 0 && featuresByCode) {
+      const features = focusCodes
+        .map((code) => featuresByCode[code])
+        .filter((f): f is Feature<Geometry> => Boolean(f));
+      const view = computeFocusView(features);
+      if (view) {
+        setCenter(view.center);
+        setZoom(view.zoom);
+      }
+    }
+  }
 
   // Pick a closer default zoom on narrow (mostly mobile/portrait) viewports
   // so the equirectangular projection doesn't leave huge empty margins.
@@ -162,11 +277,17 @@ export function WorldMap({
               geographies.map((geo) => {
                 const code = resolveCode(geo.id);
                 const isHighlighted = Boolean(highlightedCode && code === highlightedCode);
-                const isFeedback = Boolean(feedbackCode && code === feedbackCode);
+                const isCorrect = Boolean(correctCode && code === correctCode);
+                const isWrongGuess = Boolean(
+                  guessedCode && code === guessedCode && guessedCode !== correctCode,
+                );
+                const isFeedback = isCorrect || isWrongGuess;
 
                 let fill = COLORS.land;
-                if (isFeedback) {
-                  fill = feedbackCorrect ? COLORS.correct : COLORS.incorrect;
+                if (isCorrect) {
+                  fill = COLORS.correct;
+                } else if (isWrongGuess) {
+                  fill = COLORS.incorrect;
                 } else if (interactive && hoveredKey === geo.rsmKey) {
                   fill = COLORS.landHover;
                 }

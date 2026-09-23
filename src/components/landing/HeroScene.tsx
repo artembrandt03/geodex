@@ -68,9 +68,9 @@ export function HeroScene({ transitioning, onPlay }: HeroSceneProps) {
       <div className="pointer-events-none absolute inset-0">
         <Particles
           particleColors={PARTICLE_COLORS}
-          particleCount={440}
+          particleCount={880}
           particleSpread={12}
-          speed={0.08}
+          speed={0.05}
           particleBaseSize={80}
           alphaParticles
           disableRotation={false}

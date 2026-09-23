@@ -194,6 +194,22 @@ body {
   animation-iteration-count: infinite;
 }
 
+/* Same crossing, opposite direction — right to left */
+@keyframes drift-across-reverse {
+  from {
+    transform: translateX(150%);
+  }
+  to {
+    transform: translateX(calc(-100vw - 150%));
+  }
+}
+
+.animate-drift-across-reverse {
+  animation-name: drift-across-reverse;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
 /* Twinkling stars in the hero scene */
 @keyframes twinkle {
   0%,

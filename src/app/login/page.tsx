@@ -30,7 +30,7 @@ export default function LoginPage() {
         return;
       }
 
-      router.push("/");
+      router.push("/setup");
       router.refresh();
     } finally {
       setSubmitting(false);

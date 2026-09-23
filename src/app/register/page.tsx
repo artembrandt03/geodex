@@ -45,7 +45,7 @@ export default function RegisterPage() {
         return;
       }
 
-      router.push("/");
+      router.push("/setup");
       router.refresh();
     } finally {
       setSubmitting(false);

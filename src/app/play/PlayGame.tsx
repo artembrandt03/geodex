@@ -395,7 +395,7 @@ function RoundSummary({
           Leaderboard
         </Link>
         <Link
-          href="/"
+          href="/setup"
           className="rounded-lg border border-border-strong px-4 py-2 font-medium transition-colors hover:bg-surface-2"
         >
           Home

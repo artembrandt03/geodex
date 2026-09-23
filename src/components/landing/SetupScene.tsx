@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import Image from "next/image";
 import { useSession } from "next-auth/react";
 import { ROUND_LENGTHS } from "@/lib/game/types";
 import { WorldMap } from "@/components/game/WorldMap";
@@ -103,7 +102,8 @@ export function SetupScene() {
 
           <div className="text-center">
             <h1 className="flex items-center justify-center gap-2 font-display text-4xl font-bold tracking-tight">
-              <Image src="/images/earth.png" alt="" width={40} height={40} />
+              {/* eslint-disable-next-line @next/next/no-img-element -- keep the animation */}
+              <img src="/images/earth-rotating.webp" alt="" width={40} height={40} className="rounded-full" />
               Geodex
             </h1>
             <p className="mt-3 text-muted">

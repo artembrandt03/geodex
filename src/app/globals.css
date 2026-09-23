@@ -20,6 +20,7 @@
   --accent: #c99a3f;
   --accent-strong: #b3822c;
   --success: #3f6b3f;
+  --warning: #b8860b;
   --danger: #8b3a3a;
   --danger-strong: #742f2f;
 
@@ -52,6 +53,7 @@
   --color-accent: var(--accent);
   --color-accent-strong: var(--accent-strong);
   --color-success: var(--success);
+  --color-warning: var(--warning);
   --color-danger: var(--danger);
   --color-danger-strong: var(--danger-strong);
   --font-sans: var(--font-geist-sans);

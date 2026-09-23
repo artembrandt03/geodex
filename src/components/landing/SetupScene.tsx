@@ -23,9 +23,9 @@ const MODES = [
 ] as const;
 
 const DIFFICULTIES = [
-  { value: "EASY", label: "Easy", description: "Widely known countries" },
-  { value: "MEDIUM", label: "Medium", description: "A mixed bag" },
-  { value: "HARD", label: "Hard", description: "Lesser known countries" },
+  { value: "EASY", label: "Easy", description: "Widely known countries", color: "var(--success)" },
+  { value: "MEDIUM", label: "Medium", description: "A mixed bag", color: "var(--warning)" },
+  { value: "HARD", label: "Hard", description: "Lesser known countries", color: "var(--danger)" },
 ] as const;
 
 const cardBase = "rounded-xl border p-4 text-left transition-colors duration-150";
@@ -37,20 +37,38 @@ function OptionButton({
   onClick,
   title,
   subtitle,
+  titleClassName,
+  accentColor,
 }: {
   active: boolean;
   onClick: () => void;
   title: string;
   subtitle: string;
+  /** Bumps up the title's prominence (e.g. mode cards, which read too quiet by default). */
+  titleClassName?: string;
+  /** Tints the card with a difficulty-specific color instead of the generic primary accent. */
+  accentColor?: string;
 }) {
   return (
     <motion.button
       whileHover={{ y: -2 }}
       whileTap={{ scale: 0.98 }}
       onClick={onClick}
-      className={`${cardBase} ${active ? cardActive : cardInactive}`}
+      className={`${cardBase} ${accentColor ? "" : active ? cardActive : cardInactive}`}
+      style={
+        accentColor
+          ? {
+              borderColor: active
+                ? accentColor
+                : `color-mix(in srgb, ${accentColor} 40%, var(--border-strong))`,
+              backgroundColor: active
+                ? `color-mix(in srgb, ${accentColor} 22%, var(--surface))`
+                : `color-mix(in srgb, ${accentColor} 9%, var(--surface-2))`,
+            }
+          : undefined
+      }
     >
-      <div className="font-medium">{title}</div>
+      <div className={titleClassName ?? "font-medium"}>{title}</div>
       <div className="text-sm text-muted">{subtitle}</div>
     </motion.button>
   );
@@ -96,17 +114,17 @@ export function SetupScene() {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: "easeOut" }}
-          className="relative flex w-full max-w-2xl flex-col gap-8 overflow-hidden rounded-2xl border border-border bg-surface/80 p-8 shadow-2xl backdrop-blur-md"
+          className="relative flex w-full max-w-3xl flex-col gap-9 overflow-hidden rounded-2xl border border-border bg-surface/80 p-10 shadow-2xl backdrop-blur-md"
         >
           <CompassRose className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 text-muted/10" />
 
           <div className="text-center">
-            <h1 className="flex items-center justify-center gap-2 font-display text-4xl font-bold tracking-tight">
+            <h1 className="flex items-center justify-center gap-2 font-display text-5xl font-bold tracking-tight">
               {/* eslint-disable-next-line @next/next/no-img-element -- keep the animation */}
-              <img src="/images/earth-rotating.webp" alt="" width={40} height={40} className="rounded-full" />
+              <img src="/images/earth-rotating.webp" alt="" width={48} height={48} className="rounded-full" />
               Geodex
             </h1>
-            <p className="mt-3 text-muted">
+            <p className="mt-3 text-lg text-muted">
               Pick a mode, a difficulty, and a round length to get started.
             </p>
           </div>
@@ -123,6 +141,7 @@ export function SetupScene() {
                   onClick={() => setMode(m.value)}
                   title={m.label}
                   subtitle={m.description}
+                  titleClassName="font-display text-lg font-bold text-foreground"
                 />
               ))}
             </div>
@@ -140,6 +159,7 @@ export function SetupScene() {
                   onClick={() => setDifficulty(d.value)}
                   title={d.label}
                   subtitle={d.description}
+                  accentColor={d.color}
                 />
               ))}
             </div>
@@ -156,7 +176,7 @@ export function SetupScene() {
                   whileHover={{ y: -2 }}
                   whileTap={{ scale: 0.96 }}
                   onClick={() => setRoundLength(n)}
-                  className={`rounded-xl border py-3 text-center font-medium transition-colors duration-150 ${
+                  className={`rounded-xl border py-3.5 text-center text-lg font-medium transition-colors duration-150 ${
                     roundLength === n ? cardActive : cardInactive
                   }`}
                 >

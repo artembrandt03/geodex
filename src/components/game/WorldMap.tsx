@@ -137,6 +137,10 @@ export function WorldMap({
         projection="geoEquirectangular"
         className="h-full w-full"
         style={{ width: "100%", height: "100%" }}
+        // The map's internal viewBox is a fixed 4:3 (800x600); "slice" scales
+        // it to fill the actual (usually much wider) container completely
+        // instead of letterboxing empty margins on the sides.
+        preserveAspectRatio="xMidYMid slice"
       >
         <ZoomableGroup
           center={center}

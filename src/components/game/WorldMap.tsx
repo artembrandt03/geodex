@@ -118,10 +118,28 @@ function computeFocusView(
     MAX_ZOOM,
   );
 
-  return {
-    center: [(minLon + maxLon) / 2, (minLat + maxLat) / 2],
+  const result = {
+    center: [(minLon + maxLon) / 2, (minLat + maxLat) / 2] as [number, number],
     zoom: Math.max(zoom, MIN_ZOOM),
   };
+
+  // A country with degenerate/empty geometry (or any other edge case in the
+  // math above) can produce a NaN center or zoom. Feeding that into
+  // ZoomableGroup's controlled center/zoom is a real, confirmed failure
+  // mode: NaN !== NaN breaks the underlying library's "skip if unchanged"
+  // check permanently, so every subsequent render re-applies the transform,
+  // which is what actually trips React's "Maximum update depth exceeded"
+  // guard. Fall back to the safe default framing instead of ever returning
+  // a non-finite view.
+  if (
+    !Number.isFinite(result.center[0]) ||
+    !Number.isFinite(result.center[1]) ||
+    !Number.isFinite(result.zoom)
+  ) {
+    return { center: DEFAULT_CENTER, zoom: MIN_ZOOM };
+  }
+
+  return result;
 }
 
 const COLORS = {
@@ -219,6 +237,16 @@ export function WorldMap({
   const viewAnimationRef = useRef<ReturnType<typeof animate> | null>(null);
 
   const animateViewTo = useCallback((targetCenter: [number, number], targetZoom: number) => {
+    // Guards against a non-finite target ever reaching ZoomableGroup's
+    // controlled center/zoom — see the matching note in computeFocusView for
+    // why that's not just a visual glitch but a real infinite-render bug.
+    if (
+      !Number.isFinite(targetCenter[0]) ||
+      !Number.isFinite(targetCenter[1]) ||
+      !Number.isFinite(targetZoom)
+    ) {
+      return;
+    }
     viewAnimationRef.current?.stop();
     const fromCenter = centerRef.current;
     const fromZoom = zoomRef.current;
@@ -362,8 +390,13 @@ export function WorldMap({
           maxZoom={MAX_ZOOM}
           translateExtent={WORLD_TRANSLATE_EXTENT}
           onMoveEnd={({ coordinates, zoom: z }) => {
-            if (coordinates) setCenter(coordinates);
-            if (z) setZoom(z);
+            // Same non-finite guard as animateViewTo — an extreme drag
+            // gesture landing outside the projection's domain could
+            // otherwise hand back NaN coordinates here.
+            if (coordinates && Number.isFinite(coordinates[0]) && Number.isFinite(coordinates[1])) {
+              setCenter(coordinates);
+            }
+            if (typeof z === "number" && Number.isFinite(z)) setZoom(z);
           }}
         >
           <Graticule stroke="rgba(148, 163, 184, 0.08)" strokeWidth={0.5} />

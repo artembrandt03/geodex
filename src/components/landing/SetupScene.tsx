@@ -123,7 +123,7 @@ export function SetupScene() {
       className="relative h-full w-full overflow-hidden"
     >
       <div className="absolute inset-0">
-        <WorldMap interactive={false} />
+        <WorldMap interactive={false} showZoomControls={false} />
       </div>
       <CloudLayer fadeOut={transitioning} />
 

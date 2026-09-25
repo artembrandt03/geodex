@@ -147,6 +147,8 @@ export interface WorldMapProps {
   defaultZoom?: number;
   /** Overrides the resting center coordinates ([longitude, latitude]). */
   defaultCenter?: [number, number];
+  /** Hides the zoom in/out/reset buttons (e.g. the purely decorative setup-screen map). */
+  showZoomControls?: boolean;
 }
 
 /** World map on an equirectangular (cylindrical) projection — pannable and zoomable. */
@@ -159,6 +161,7 @@ export function WorldMap({
   resetSignal,
   defaultZoom,
   defaultCenter,
+  showZoomControls = true,
 }: WorldMapProps) {
   const restCenter = defaultCenter ?? DEFAULT_CENTER;
   const restZoom = defaultZoom ?? DEFAULT_ZOOM;
@@ -418,17 +421,19 @@ export function WorldMap({
         </ZoomableGroup>
       </ComposableMap>
 
-      <div className="absolute bottom-4 right-4 flex flex-col gap-2">
-        <MapButton onClick={zoomIn} label="Zoom in">
-          +
-        </MapButton>
-        <MapButton onClick={zoomOut} label="Zoom out">
-          −
-        </MapButton>
-        <MapButton onClick={resetView} label="Reset view" small>
-          ⟲
-        </MapButton>
-      </div>
+      {showZoomControls && (
+        <div className="absolute bottom-4 right-4 flex flex-col gap-2">
+          <MapButton onClick={zoomIn} label="Zoom in">
+            +
+          </MapButton>
+          <MapButton onClick={zoomOut} label="Zoom out">
+            −
+          </MapButton>
+          <MapButton onClick={resetView} label="Reset view" small>
+            ⟲
+          </MapButton>
+        </div>
+      )}
     </div>
   );
 }

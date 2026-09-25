@@ -54,20 +54,34 @@ function OptionButton({
       whileHover={{ y: -2 }}
       whileTap={{ scale: 0.98 }}
       onClick={onClick}
-      className={`${cardBase} ${accentColor ? "" : active ? cardActive : cardInactive}`}
+      className={`relative ${cardBase} ${accentColor ? "" : active ? cardActive : cardInactive}`}
       style={
         accentColor
           ? {
-              borderColor: active
-                ? accentColor
-                : `color-mix(in srgb, ${accentColor} 40%, var(--border-strong))`,
+              borderColor: accentColor,
+              borderWidth: active ? 3 : 1.5,
+              // A big jump between the two states (6% vs 40% mix) rather than
+              // a subtle one, plus a ring only on the active card, so which
+              // difficulty is selected reads at a glance instead of blending
+              // into the other two.
               backgroundColor: active
-                ? `color-mix(in srgb, ${accentColor} 22%, var(--surface))`
-                : `color-mix(in srgb, ${accentColor} 9%, var(--surface-2))`,
+                ? `color-mix(in srgb, ${accentColor} 40%, var(--surface))`
+                : `color-mix(in srgb, ${accentColor} 6%, var(--surface-2))`,
+              boxShadow: active
+                ? `0 0 0 3px color-mix(in srgb, ${accentColor} 40%, transparent)`
+                : undefined,
             }
           : undefined
       }
     >
+      {accentColor && active && (
+        <span
+          className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold text-primary-foreground"
+          style={{ backgroundColor: accentColor }}
+        >
+          ✓
+        </span>
+      )}
       <div className={titleClassName ?? "font-medium"}>{title}</div>
       <div className="text-sm text-muted">{subtitle}</div>
     </motion.button>

@@ -6,7 +6,10 @@ import { motion } from "framer-motion";
 import { useSession } from "next-auth/react";
 import { ROUND_LENGTHS } from "@/lib/game/types";
 import { useMapBackdropFade } from "@/components/providers/MapBackdropProvider";
+import { CloudCurtain } from "./CloudCurtain";
 import { CompassRose } from "./CompassRose";
+
+const CURTAIN_DURATION = 0.6;
 
 const MODES = [
   {
@@ -117,18 +120,15 @@ export function SetupScene() {
       difficulty,
       roundLength: String(roundLength),
     });
-    // Give the zoom-in a moment to play before the route actually changes.
+    // Navigate once the cloud curtain has fully swept closed, so the actual
+    // page swap happens while the screen is completely covered.
     setTimeout(() => {
       router.push(`/play?${params.toString()}`);
-    }, 700);
+    }, CURTAIN_DURATION * 1000);
   }
 
   return (
-    <motion.div
-      animate={transitioning ? { scale: 5, opacity: 0 } : { scale: 1, opacity: 1 }}
-      transition={{ duration: 0.7, ease: [0.7, 0, 0.9, 0.4] }}
-      className="relative h-full w-full overflow-hidden"
-    >
+    <div className="relative h-full w-full overflow-hidden">
       <div className="relative z-10 flex h-full items-center justify-center overflow-y-auto px-4 py-10">
         <motion.div
           initial={{ opacity: 0, y: 12 }}
@@ -225,6 +225,8 @@ export function SetupScene() {
           )}
         </motion.div>
       </div>
-    </motion.div>
+
+      {transitioning && <CloudCurtain phase="closing" duration={CURTAIN_DURATION} />}
+    </div>
   );
 }

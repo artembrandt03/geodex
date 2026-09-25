@@ -5,10 +5,13 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { animate, motion, useMotionValue } from "framer-motion";
 import { WorldMap } from "@/components/game/WorldMap";
+import { CloudCurtain } from "@/components/landing/CloudCurtain";
 import { useRound } from "@/lib/game/useRound";
 import { normalizeAnswer } from "@/lib/game/normalizeAnswer";
 import { ROUND_LENGTHS } from "@/lib/game/types";
 import type { RoundConfig } from "@/lib/game/types";
+
+const CURTAIN_DURATION = 0.6;
 
 const VALID_MODES = new Set(["NAME", "SHAPE"]);
 const VALID_DIFFICULTIES = new Set(["EASY", "MEDIUM", "HARD"]);
@@ -76,6 +79,15 @@ function ActiveRound({
   const [guessInput, setGuessInput] = useState("");
   const [countryNames, setCountryNames] = useState<{ code: string; name: string }[]>([]);
 
+  // Starts fully closed (matching the cloud curtain SetupScene just swept
+  // shut with) and sweeps open shortly after mount, hiding the round's own
+  // loading flicker behind it so the two pages read as one continuous sweep.
+  const [showEntryCurtain, setShowEntryCurtain] = useState(true);
+  useEffect(() => {
+    const timeout = setTimeout(() => setShowEntryCurtain(false), CURTAIN_DURATION * 1000);
+    return () => clearTimeout(timeout);
+  }, []);
+
   // Fetched for both modes: SHAPE needs it for the autocomplete list, NAME
   // needs it to name whatever country the player mis-clicked in feedback.
   useEffect(() => {
@@ -88,19 +100,21 @@ function ActiveRound({
 
   if (state.status === "loading") {
     return (
-      <div className="flex h-full items-center justify-center">
+      <div className="relative flex h-full items-center justify-center">
         <p className="animate-pulse text-muted">Loading round...</p>
+        {showEntryCurtain && <CloudCurtain phase="opening" duration={CURTAIN_DURATION} />}
       </div>
     );
   }
 
   if (state.status === "error") {
     return (
-      <div className="mx-auto max-w-md px-4 py-16 text-center animate-fade-up">
+      <div className="relative mx-auto max-w-md px-4 py-16 text-center animate-fade-up">
         <p className="mb-4 text-danger">{state.errorMessage}</p>
         <Link href="/setup" className="text-primary underline underline-offset-4">
           Back to setup
         </Link>
+        {showEntryCurtain && <CloudCurtain phase="opening" duration={CURTAIN_DURATION} />}
       </div>
     );
   }
@@ -290,6 +304,8 @@ function ActiveRound({
           </form>
         )}
       </div>
+
+      {showEntryCurtain && <CloudCurtain phase="opening" duration={CURTAIN_DURATION} />}
     </div>
   );
 }

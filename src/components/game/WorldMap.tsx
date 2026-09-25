@@ -8,7 +8,7 @@ import {
   Graticule,
   ZoomableGroup,
 } from "react-simple-maps";
-import { motion } from "framer-motion";
+import { animate, motion } from "framer-motion";
 import { geoBounds, geoEquirectangular } from "d3-geo";
 import { feature } from "topojson-client";
 import type { Feature, Geometry } from "geojson";
@@ -31,6 +31,13 @@ const VIEWBOX_WIDTH = 800;
 const VIEWBOX_HEIGHT = 600;
 const FOCUS_PADDING_PX = 70;
 
+const BASE_PROJECTION = geoEquirectangular().translate([VIEWBOX_WIDTH / 2, VIEWBOX_HEIGHT / 2]);
+// The world's own half-width/height in projected (viewBox) units — how far
+// the map's actual content extends from center, at zoom 1. Used to bound
+// panning to exactly the map's edges (see computeTranslateExtent below).
+const WORLD_HALF_WIDTH = BASE_PROJECTION([180, 0])![0] - VIEWBOX_WIDTH / 2;
+const WORLD_HALF_HEIGHT = VIEWBOX_HEIGHT / 2 - BASE_PROJECTION([0, 90])![1];
+
 function getDefaultZoomForViewport(baseZoom: number) {
   if (typeof window === "undefined") return baseZoom;
   return window.innerWidth < NARROW_BREAKPOINT_PX
@@ -38,8 +45,37 @@ function getDefaultZoomForViewport(baseZoom: number) {
     : baseZoom;
 }
 
+/**
+ * The exact range of ZoomableGroup translate values that keep the map's
+ * content edges reachable but never pannable past — i.e. dragging (or a
+ * reveal-zoom) can go anywhere content actually exists, but never far
+ * enough to expose blank space beyond the map. A fixed translateExtent
+ * (the previous approach) either clamps legitimate far-apart reveal fits
+ * (confirmed live: a Panama/Poland reveal got its pan clamped, cropping
+ * Panama off screen) or, if loosened enough to avoid that, allows dragging
+ * past the map's edge into empty space. Scaling the extent with zoom fixes
+ * both at once.
+ */
+function computeTranslateExtent(zoom: number): [[number, number], [number, number]] {
+  // ZoomableGroup's transform is `translate + scale * projectedPoint`, so the
+  // reachable translate range at a given zoom is centered on
+  // viewBoxCenter*(1-zoom) (where the unzoomed center would land) with a
+  // half-width/height of worldHalfExtent*zoom on either side.
+  const xOffset = (VIEWBOX_WIDTH / 2) * (1 - zoom);
+  const yOffset = (VIEWBOX_HEIGHT / 2) * (1 - zoom);
+  const xRange = WORLD_HALF_WIDTH * zoom;
+  const yRange = WORLD_HALF_HEIGHT * zoom;
+  return [
+    [xOffset - xRange, yOffset - yRange],
+    [xOffset + xRange, yOffset + yRange],
+  ];
+}
+
 /** Fits the given countries' combined bounds on screen, for the post-guess reveal zoom. */
-function computeFocusView(features: Feature<Geometry>[]): { center: [number, number]; zoom: number } | null {
+function computeFocusView(
+  features: Feature<Geometry>[],
+  visibleViewBox: { width: number; height: number },
+): { center: [number, number]; zoom: number } | null {
   if (features.length === 0) return null;
 
   const bounds = features.map((f) => geoBounds(f));
@@ -75,9 +111,17 @@ function computeFocusView(features: Feature<Geometry>[]): { center: [number, num
 
   const boxWidth = Math.max(bottomRight[0] - topLeft[0], 1);
   const boxHeight = Math.max(bottomRight[1] - topLeft[1], 1);
+  // Fit against the actually-visible viewBox area, not the full 800x600 —
+  // preserveAspectRatio="slice" crops the viewBox down to whatever the
+  // container's real aspect ratio leaves visible, so fitting against the
+  // full box could compute a zoom that's technically correct for 800x600
+  // but still gets one of the two countries cropped off the real screen
+  // (confirmed live: a Finland/Sudan reveal on a wide viewport cut Finland
+  // off entirely because the fit assumed more vertical room than was
+  // actually on screen).
   const zoom = Math.min(
-    (VIEWBOX_WIDTH - FOCUS_PADDING_PX * 2) / boxWidth,
-    (VIEWBOX_HEIGHT - FOCUS_PADDING_PX * 2) / boxHeight,
+    (Math.max(visibleViewBox.width, 1) - FOCUS_PADDING_PX * 2) / boxWidth,
+    (Math.max(visibleViewBox.height, 1) - FOCUS_PADDING_PX * 2) / boxHeight,
     MAX_ZOOM,
   );
 
@@ -143,6 +187,60 @@ export function WorldMap({
   // below adjusts this for narrow viewports so the map doesn't letterbox.
   const defaultZoomRef = useRef(restZoom);
 
+  const containerRef = useRef<HTMLDivElement>(null);
+  // The part of the 800x600 viewBox actually visible on screen once
+  // preserveAspectRatio="slice" crops it to the container's real aspect
+  // ratio — needed so the reveal-zoom fits countries against what's really
+  // visible rather than the full (partly cropped-off) viewBox.
+  const [visibleViewBox, setVisibleViewBox] = useState({
+    width: VIEWBOX_WIDTH,
+    height: VIEWBOX_HEIGHT,
+  });
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const update = () => {
+      const { width, height } = el.getBoundingClientRect();
+      if (width === 0 || height === 0) return;
+      const scale = Math.max(width / VIEWBOX_WIDTH, height / VIEWBOX_HEIGHT);
+      setVisibleViewBox({ width: width / scale, height: height / scale });
+    };
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  // Latest center/zoom without depending on them (which would retrigger
+  // whatever effect reads these refs) — synced after every render rather
+  // than during it, since refs can't be written during render.
+  const centerRef = useRef(center);
+  const zoomRef = useRef(zoom);
+  useEffect(() => {
+    centerRef.current = center;
+    zoomRef.current = zoom;
+  });
+
+  const viewAnimationRef = useRef<ReturnType<typeof animate> | null>(null);
+
+  const animateViewTo = useCallback((targetCenter: [number, number], targetZoom: number) => {
+    viewAnimationRef.current?.stop();
+    const fromCenter = centerRef.current;
+    const fromZoom = zoomRef.current;
+    viewAnimationRef.current = animate(0, 1, {
+      duration: 0.7,
+      ease: "easeInOut",
+      onUpdate: (t) => {
+        setCenter([
+          fromCenter[0] + (targetCenter[0] - fromCenter[0]) * t,
+          fromCenter[1] + (targetCenter[1] - fromCenter[1]) * t,
+        ]);
+        setZoom(fromZoom + (targetZoom - fromZoom) * t);
+      },
+    });
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     fetch(COUNTRY_CODES_URL)
@@ -197,27 +295,22 @@ export function WorldMap({
     [correctCode, guessedCode],
   );
 
-  // React's "adjust state during render" pattern (not an effect — see
-  // CLAUDE.md's note on why a plain useEffect here trips the
-  // react-hooks/set-state-in-effect lint rule) so the reveal-zoom applies
-  // the instant both the guess outcome and the map's geometry are ready,
-  // including the edge case where the geometry fetch is still in flight
-  // when the outcome first arrives.
+  // Smoothly zooms/pans onto the reveal once both the guess outcome and the
+  // map's geometry are ready (an effect, not the render-time-adjustment
+  // pattern used elsewhere in this file — starting an animation is a real
+  // side effect, and setCenter/setZoom here happen asynchronously inside
+  // animateViewTo's onUpdate, not synchronously in the effect body, so this
+  // doesn't trip the react-hooks/set-state-in-effect lint rule).
   const focusReadyKey = `${focusCodes.join(",")}|${featuresByCode ? "ready" : "pending"}`;
-  const [lastFocusReadyKey, setLastFocusReadyKey] = useState(focusReadyKey);
-  if (focusReadyKey !== lastFocusReadyKey) {
-    setLastFocusReadyKey(focusReadyKey);
-    if (focusCodes.length > 0 && featuresByCode) {
-      const features = focusCodes
-        .map((code) => featuresByCode[code])
-        .filter((f): f is Feature<Geometry> => Boolean(f));
-      const view = computeFocusView(features);
-      if (view) {
-        setCenter(view.center);
-        setZoom(view.zoom);
-      }
-    }
-  }
+  useEffect(() => {
+    if (focusCodes.length === 0 || !featuresByCode) return;
+    const features = focusCodes
+      .map((code) => featuresByCode[code])
+      .filter((f): f is Feature<Geometry> => Boolean(f));
+    const view = computeFocusView(features, visibleViewBox);
+    if (view) animateViewTo(view.center, view.zoom);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusReadyKey]);
 
   // Pick a closer default zoom on narrow (mostly mobile/portrait) viewports
   // so the equirectangular projection doesn't leave huge empty margins.
@@ -234,8 +327,7 @@ export function WorldMap({
       isFirstResetSignal.current = false;
       return;
     }
-    setCenter(restCenter);
-    setZoom(defaultZoomRef.current);
+    animateViewTo(restCenter, defaultZoomRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resetSignal]);
 
@@ -244,6 +336,8 @@ export function WorldMap({
       geoId === undefined ? null : (codeByNumericId?.[String(geoId)] ?? null),
     [codeByNumericId],
   );
+
+  const translateExtent = useMemo(() => computeTranslateExtent(zoom), [zoom]);
 
   const zoomIn = () => setZoom((z) => Math.min(z * 1.6, MAX_ZOOM));
   const zoomOut = () => setZoom((z) => Math.max(z / 1.6, MIN_ZOOM));
@@ -254,6 +348,7 @@ export function WorldMap({
 
   return (
     <div
+      ref={containerRef}
       className="relative h-full w-full overflow-hidden rounded-2xl"
       style={{
         // A vertical gradient (rather than one anchored to a point) reads as
@@ -276,10 +371,7 @@ export function WorldMap({
           zoom={zoom}
           minZoom={MIN_ZOOM}
           maxZoom={MAX_ZOOM}
-          translateExtent={[
-            [-200, -150],
-            [1000, 750],
-          ]}
+          translateExtent={translateExtent}
           onMoveEnd={({ coordinates, zoom: z }) => {
             if (coordinates) setCenter(coordinates);
             if (z) setZoom(z);

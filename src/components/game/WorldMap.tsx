@@ -32,43 +32,36 @@ const VIEWBOX_HEIGHT = 600;
 const FOCUS_PADDING_PX = 70;
 
 const BASE_PROJECTION = geoEquirectangular().translate([VIEWBOX_WIDTH / 2, VIEWBOX_HEIGHT / 2]);
-// The world's own half-width/height in projected (viewBox) units — how far
-// the map's actual content extends from center, at zoom 1. Used to bound
-// panning to exactly the map's edges (see computeTranslateExtent below).
-const WORLD_HALF_WIDTH = BASE_PROJECTION([180, 0])![0] - VIEWBOX_WIDTH / 2;
-const WORLD_HALF_HEIGHT = VIEWBOX_HEIGHT / 2 - BASE_PROJECTION([0, 90])![1];
+// The world's own bounding box in the untransformed viewBox's own coordinate
+// space (i.e. where the content sits before any pan/zoom is applied).
+//
+// This is what react-simple-maps' ZoomableGroup wants for translateExtent —
+// a FIXED, zoom-independent rectangle in content space, not (as an earlier,
+// wrong version of this code assumed) a zoom-scaled range of raw translate
+// pixel values. d3-zoom's own constrain function inverts the current
+// transform to compare the viewport against this content rectangle, so it
+// already handles scaling correctly at any zoom: it clamps panning once the
+// content's edge would go past the viewport's edge (content taller/wider
+// than the viewport) and centers the content when the viewport is bigger
+// than the content (e.g. the default zoomed-out view, where the map is
+// naturally shorter than an ultra-wide viewport). Confirmed by trying to
+// hand-roll a zoom-scaled version instead: it either clamped legitimate
+// reveal-zoom fits (a Panama/Poland reveal got clipped) or, once loosened,
+// let manual dragging reveal far more blank space than intended.
+const WORLD_TRANSLATE_EXTENT: [[number, number], [number, number]] = (() => {
+  const halfWidth = BASE_PROJECTION([180, 0])![0] - VIEWBOX_WIDTH / 2;
+  const halfHeight = VIEWBOX_HEIGHT / 2 - BASE_PROJECTION([0, 90])![1];
+  return [
+    [VIEWBOX_WIDTH / 2 - halfWidth, VIEWBOX_HEIGHT / 2 - halfHeight],
+    [VIEWBOX_WIDTH / 2 + halfWidth, VIEWBOX_HEIGHT / 2 + halfHeight],
+  ];
+})();
 
 function getDefaultZoomForViewport(baseZoom: number) {
   if (typeof window === "undefined") return baseZoom;
   return window.innerWidth < NARROW_BREAKPOINT_PX
     ? Math.max(baseZoom, NARROW_VIEWPORT_ZOOM)
     : baseZoom;
-}
-
-/**
- * The exact range of ZoomableGroup translate values that keep the map's
- * content edges reachable but never pannable past — i.e. dragging (or a
- * reveal-zoom) can go anywhere content actually exists, but never far
- * enough to expose blank space beyond the map. A fixed translateExtent
- * (the previous approach) either clamps legitimate far-apart reveal fits
- * (confirmed live: a Panama/Poland reveal got its pan clamped, cropping
- * Panama off screen) or, if loosened enough to avoid that, allows dragging
- * past the map's edge into empty space. Scaling the extent with zoom fixes
- * both at once.
- */
-function computeTranslateExtent(zoom: number): [[number, number], [number, number]] {
-  // ZoomableGroup's transform is `translate + scale * projectedPoint`, so the
-  // reachable translate range at a given zoom is centered on
-  // viewBoxCenter*(1-zoom) (where the unzoomed center would land) with a
-  // half-width/height of worldHalfExtent*zoom on either side.
-  const xOffset = (VIEWBOX_WIDTH / 2) * (1 - zoom);
-  const yOffset = (VIEWBOX_HEIGHT / 2) * (1 - zoom);
-  const xRange = WORLD_HALF_WIDTH * zoom;
-  const yRange = WORLD_HALF_HEIGHT * zoom;
-  return [
-    [xOffset - xRange, yOffset - yRange],
-    [xOffset + xRange, yOffset + yRange],
-  ];
 }
 
 /** Fits the given countries' combined bounds on screen, for the post-guess reveal zoom. */
@@ -337,14 +330,9 @@ export function WorldMap({
     [codeByNumericId],
   );
 
-  const translateExtent = useMemo(() => computeTranslateExtent(zoom), [zoom]);
-
   const zoomIn = () => setZoom((z) => Math.min(z * 1.6, MAX_ZOOM));
   const zoomOut = () => setZoom((z) => Math.max(z / 1.6, MIN_ZOOM));
-  const resetView = () => {
-    setCenter(restCenter);
-    setZoom(defaultZoomRef.current);
-  };
+  const resetView = () => animateViewTo(restCenter, defaultZoomRef.current);
 
   return (
     <div
@@ -371,7 +359,7 @@ export function WorldMap({
           zoom={zoom}
           minZoom={MIN_ZOOM}
           maxZoom={MAX_ZOOM}
-          translateExtent={translateExtent}
+          translateExtent={WORLD_TRANSLATE_EXTENT}
           onMoveEnd={({ coordinates, zoom: z }) => {
             if (coordinates) setCenter(coordinates);
             if (z) setZoom(z);

@@ -127,8 +127,6 @@ function computeFocusView(
 const COLORS = {
   land: "var(--map-land)",
   landHover: "var(--map-land-hover)",
-  correct: "var(--success)",
-  incorrect: "var(--danger)",
   border: "var(--map-border)",
 };
 
@@ -377,29 +375,37 @@ export function WorldMap({
                 );
                 const isFeedback = isCorrect || isWrongGuess;
 
-                let fill = COLORS.land;
-                if (isCorrect) {
-                  fill = COLORS.correct;
-                } else if (isWrongGuess) {
-                  fill = COLORS.incorrect;
-                } else if (interactive && hoveredKey === geo.rsmKey) {
-                  fill = COLORS.landHover;
-                }
+                // Feedback/highlight fills are driven by their CSS animation
+                // instead (see geoClassName below) — this only covers the
+                // plain land/hover cases.
+                const fill = interactive && hoveredKey === geo.rsmKey ? COLORS.landHover : COLORS.land;
+
+                const geoClassName = isCorrect
+                  ? "geo-correct-pulse"
+                  : isWrongGuess
+                    ? "geo-incorrect-pulse"
+                    : isHighlighted
+                      ? "geo-highlighted"
+                      : undefined;
 
                 return (
                   <Geography
                     key={geo.rsmKey}
                     geography={geo}
-                    className={isHighlighted && !isFeedback ? "geo-highlighted" : undefined}
+                    className={geoClassName}
                     onClick={() => {
                       if (interactive) onCountryClick?.(code);
                     }}
                     onMouseEnter={() => interactive && setHoveredKey(geo.rsmKey)}
                     onMouseLeave={() => interactive && setHoveredKey(null)}
                     style={{
-                      fill: isHighlighted && !isFeedback ? undefined : fill,
+                      // Feedback/highlight fills are driven entirely by their
+                      // CSS animation (geo-correct-pulse, geo-incorrect-pulse,
+                      // geo-highlighted) so the pulse can actually animate —
+                      // an inline fill here would just override it every frame.
+                      fill: geoClassName ? undefined : fill,
                       stroke: COLORS.border,
-                      strokeWidth: 0.4 / zoom,
+                      strokeWidth: isFeedback ? 1.5 / zoom : 0.4 / zoom,
                       outline: "none",
                       cursor: interactive ? "pointer" : "default",
                       transition: "fill 200ms ease",

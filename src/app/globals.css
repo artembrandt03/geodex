@@ -163,6 +163,41 @@ body {
   animation: geo-pulse 1.8s ease-in-out infinite;
 }
 
+/* Reveal feedback pulse (post-guess correct/incorrect country) — a glow on
+   top of the fill pulse so the highlighted country reads clearly even
+   against similarly-toned neighbors. */
+@keyframes geo-pulse-correct {
+  0%,
+  100% {
+    fill: var(--success);
+    filter: drop-shadow(0 0 0 var(--success));
+  }
+  50% {
+    fill: color-mix(in srgb, var(--success) 55%, white);
+    filter: drop-shadow(0 0 12px var(--success));
+  }
+}
+
+@keyframes geo-pulse-incorrect {
+  0%,
+  100% {
+    fill: var(--danger);
+    filter: drop-shadow(0 0 0 var(--danger));
+  }
+  50% {
+    fill: color-mix(in srgb, var(--danger) 55%, white);
+    filter: drop-shadow(0 0 12px var(--danger));
+  }
+}
+
+.geo-correct-pulse {
+  animation: geo-pulse-correct 1.2s ease-in-out infinite;
+}
+
+.geo-incorrect-pulse {
+  animation: geo-pulse-incorrect 1.2s ease-in-out infinite;
+}
+
 /* Score ticking up */
 @keyframes score-bump {
   0% {

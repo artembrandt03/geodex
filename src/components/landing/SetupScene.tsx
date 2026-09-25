@@ -1,12 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { useSession } from "next-auth/react";
 import { ROUND_LENGTHS } from "@/lib/game/types";
-import { WorldMap } from "@/components/game/WorldMap";
-import { CloudLayer } from "./CloudLayer";
+import { useMapBackdropFade } from "@/components/providers/MapBackdropProvider";
 import { CompassRose } from "./CompassRose";
 
 const MODES = [
@@ -102,9 +101,17 @@ export function SetupScene() {
     useState<(typeof DIFFICULTIES)[number]["value"]>("EASY");
   const [roundLength, setRoundLength] = useState<number>(10);
   const [transitioning, setTransitioning] = useState(false);
+  const setBackdropFadeOut = useMapBackdropFade();
+
+  // The shared backdrop persists across navigations, so a stale fade-out
+  // from a previous visit (started a game, came back) needs resetting here.
+  useEffect(() => {
+    setBackdropFadeOut(false);
+  }, [setBackdropFadeOut]);
 
   function startGame() {
     setTransitioning(true);
+    setBackdropFadeOut(true);
     const params = new URLSearchParams({
       mode,
       difficulty,
@@ -122,11 +129,6 @@ export function SetupScene() {
       transition={{ duration: 0.7, ease: [0.7, 0, 0.9, 0.4] }}
       className="relative h-full w-full overflow-hidden"
     >
-      <div className="absolute inset-0">
-        <WorldMap interactive={false} showZoomControls={false} />
-      </div>
-      <CloudLayer fadeOut={transitioning} />
-
       <div className="relative z-10 flex h-full items-center justify-center overflow-y-auto px-4 py-10">
         <motion.div
           initial={{ opacity: 0, y: 12 }}

@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { signIn } from "next-auth/react";
-import { MapBackdrop } from "@/components/layout/MapBackdrop";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -40,7 +39,6 @@ export default function LoginPage() {
 
   return (
     <div className="relative h-full w-full overflow-hidden">
-      <MapBackdrop />
       <div className="relative z-10 flex h-full items-center justify-center overflow-y-auto px-4 py-16">
         <motion.div
           initial={{ opacity: 0, y: 12 }}

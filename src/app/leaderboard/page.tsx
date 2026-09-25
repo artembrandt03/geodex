@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { ROUND_LENGTHS } from "@/lib/game/types";
-import { MapBackdrop } from "@/components/layout/MapBackdrop";
 
 const MODES = [
   { value: "NAME", label: "Guess by name" },
@@ -56,7 +55,6 @@ export default function LeaderboardPage() {
 
   return (
     <div className="relative h-full w-full overflow-hidden">
-      <MapBackdrop />
       <div className="relative z-10 flex h-full items-start justify-center overflow-y-auto px-4 py-10">
         <motion.div
           initial={{ opacity: 0, y: 12 }}

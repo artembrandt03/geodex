@@ -32,6 +32,17 @@ const cardBase = "rounded-xl border p-4 text-left transition-colors duration-150
 const cardActive = "border-primary bg-primary/15";
 const cardInactive = "border-border-strong bg-surface-2/60 hover:bg-surface-2";
 
+function CheckBadge({ color }: { color: string }) {
+  return (
+    <span
+      className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold text-primary-foreground"
+      style={{ backgroundColor: color }}
+    >
+      ✓
+    </span>
+  );
+}
+
 function OptionButton({
   active,
   onClick,
@@ -74,14 +85,7 @@ function OptionButton({
           : undefined
       }
     >
-      {accentColor && active && (
-        <span
-          className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold text-primary-foreground"
-          style={{ backgroundColor: accentColor }}
-        >
-          ✓
-        </span>
-      )}
+      {active && <CheckBadge color={accentColor ?? "var(--primary)"} />}
       <div className={titleClassName ?? "font-medium"}>{title}</div>
       <div className="text-sm text-muted">{subtitle}</div>
     </motion.button>
@@ -190,10 +194,11 @@ export function SetupScene() {
                   whileHover={{ y: -2 }}
                   whileTap={{ scale: 0.96 }}
                   onClick={() => setRoundLength(n)}
-                  className={`rounded-xl border py-3.5 text-center text-lg font-medium transition-colors duration-150 ${
+                  className={`relative rounded-xl border py-3.5 text-center text-lg font-medium transition-colors duration-150 ${
                     roundLength === n ? cardActive : cardInactive
                   }`}
                 >
+                  {roundLength === n && <CheckBadge color="var(--primary)" />}
                   {n}
                 </motion.button>
               ))}

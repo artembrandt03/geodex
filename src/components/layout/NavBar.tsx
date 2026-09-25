@@ -17,18 +17,18 @@ export function NavBar() {
   return (
     <header className="relative z-20 border-b border-border bg-surface/70 backdrop-blur-md">
       <nav className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
-        <Link href="/setup" className="flex items-center gap-2 font-display text-lg font-bold tracking-tight">
-          <motion.span
-            whileHover={{ rotate: 15, scale: 1.1 }}
-            transition={{ type: "spring", stiffness: 300, damping: 12 }}
-            className="inline-block"
-          >
-            <Image src="/images/earth.png" alt="" width={24} height={24} />
-          </motion.span>
-          Geodex
-        </Link>
+        <div className="flex items-center gap-5">
+          <Link href="/setup" className="flex items-center gap-2 font-display text-lg font-bold tracking-tight">
+            <motion.span
+              whileHover={{ rotate: 15, scale: 1.1 }}
+              transition={{ type: "spring", stiffness: 300, damping: 12 }}
+              className="inline-block"
+            >
+              <Image src="/images/earth.png" alt="" width={24} height={24} />
+            </motion.span>
+            Geodex
+          </Link>
 
-        <div className="flex items-center gap-5 text-sm">
           <Link
             href="/leaderboard"
             className={`transition-opacity hover:opacity-80 ${
@@ -38,7 +38,9 @@ export function NavBar() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/images/leaderboard.png" alt="Leaderboard" className="h-7 w-auto" />
           </Link>
+        </div>
 
+        <div className="flex items-center gap-5 text-sm">
           {status === "loading" ? null : session?.user ? (
             <div className="flex items-center gap-3">
               <span className="text-muted">{session.user.name}</span>

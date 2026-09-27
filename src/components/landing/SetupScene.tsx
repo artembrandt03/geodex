@@ -5,11 +5,8 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { useSession } from "next-auth/react";
 import { ROUND_LENGTHS } from "@/lib/game/types";
-import { useMapBackdropFade } from "@/components/providers/MapBackdropProvider";
-import { CloudCurtain } from "./CloudCurtain";
+import { useBackdropExit } from "@/components/providers/MapBackdropProvider";
 import { CompassRose } from "./CompassRose";
-
-const CURTAIN_DURATION = 0.6;
 
 const MODES = [
   {
@@ -104,27 +101,26 @@ export function SetupScene() {
     useState<(typeof DIFFICULTIES)[number]["value"]>("EASY");
   const [roundLength, setRoundLength] = useState<number>(10);
   const [transitioning, setTransitioning] = useState(false);
-  const setBackdropFadeOut = useMapBackdropFade();
+  const { setExiting, exitDuration } = useBackdropExit();
 
-  // The shared backdrop persists across navigations, so a stale fade-out
+  // The shared backdrop persists across navigations, so a stale exit state
   // from a previous visit (started a game, came back) needs resetting here.
   useEffect(() => {
-    setBackdropFadeOut(false);
-  }, [setBackdropFadeOut]);
+    setExiting(false);
+  }, [setExiting]);
 
   function startGame() {
     setTransitioning(true);
-    setBackdropFadeOut(true);
+    setExiting(true);
     const params = new URLSearchParams({
       mode,
       difficulty,
       roundLength: String(roundLength),
     });
-    // Navigate once the cloud curtain has fully swept closed, so the actual
-    // page swap happens while the screen is completely covered.
+    // Navigate once the backdrop's zoom-in/cloud-escape has played out.
     setTimeout(() => {
       router.push(`/play?${params.toString()}`);
-    }, CURTAIN_DURATION * 1000);
+    }, exitDuration * 1000);
   }
 
   return (
@@ -225,8 +221,6 @@ export function SetupScene() {
           )}
         </motion.div>
       </div>
-
-      {transitioning && <CloudCurtain phase="closing" duration={CURTAIN_DURATION} />}
     </div>
   );
 }

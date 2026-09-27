@@ -4,8 +4,10 @@ import { motion } from "framer-motion";
 import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 
 export interface CloudLayerProps {
-  /** True while the setup screen is zooming into the map to start a round. */
-  fadeOut: boolean;
+  /** True while the setup screen is zooming into the map to start a round —
+   *  each cloud flies off screen in whatever direction it was already
+   *  drifting, instead of the usual slow ambient loop. */
+  escaping: boolean;
 }
 
 type Direction = "left-to-right" | "right-to-left";
@@ -37,33 +39,38 @@ const CLOUDS: CloudSpec[] = Array.from({ length: CLOUD_COUNT }, (_, i) => ({
 }));
 
 /** A busy sky of real cloud animations, drifting both ways at different speeds. */
-export function CloudLayer({ fadeOut }: CloudLayerProps) {
+export function CloudLayer({ escaping }: CloudLayerProps) {
   return (
-    <motion.div
-      animate={{ opacity: fadeOut ? 0 : 1 }}
-      transition={{ duration: 0.5 }}
-      className="pointer-events-none absolute inset-0 overflow-hidden"
-    >
+    <div className="pointer-events-none absolute inset-0 overflow-hidden">
       {CLOUDS.map((cloud) => (
-        <div
+        // Outer wrapper only ever carries the "escape" kick (an extra x
+        // offset, additive on top of the inner element's own transform), so
+        // it never fights the inner div's continuous CSS drift animation —
+        // they're on separate elements, and transforms compose naturally
+        // when nested.
+        <motion.div
           key={cloud.id}
-          className={
-            cloud.direction === "left-to-right"
-              ? "animate-drift-across absolute left-0"
-              : "animate-drift-across-reverse absolute right-0"
-          }
-          style={{
-            top: cloud.top,
-            width: cloud.width,
-            height: cloud.width * 0.6,
-            opacity: cloud.opacity,
-            animationDuration: `${cloud.duration}s`,
-            animationDelay: `${cloud.delay}s`,
-          }}
+          className="absolute"
+          style={{ top: cloud.top, [cloud.direction === "left-to-right" ? "left" : "right"]: 0 }}
+          animate={{ x: escaping ? (cloud.direction === "left-to-right" ? "130vw" : "-130vw") : "0vw" }}
+          transition={{ duration: 0.45, ease: [0.4, 0, 1, 1] }}
         >
-          <DotLottieReact src="/images/cloud.lottie" loop autoplay />
-        </div>
+          <div
+            className={
+              cloud.direction === "left-to-right" ? "animate-drift-across" : "animate-drift-across-reverse"
+            }
+            style={{
+              width: cloud.width,
+              height: cloud.width * 0.6,
+              opacity: cloud.opacity,
+              animationDuration: `${cloud.duration}s`,
+              animationDelay: `${cloud.delay}s`,
+            }}
+          >
+            <DotLottieReact src="/images/cloud.lottie" loop autoplay />
+          </div>
+        </motion.div>
       ))}
-    </motion.div>
+    </div>
   );
 }

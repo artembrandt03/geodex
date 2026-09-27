@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { motion } from "framer-motion";
 import { useSession } from "next-auth/react";
 import { ROUND_LENGTHS } from "@/lib/game/types";
@@ -13,11 +14,13 @@ const MODES = [
     value: "NAME",
     label: "Guess by name",
     description: "We name a country. Click it on the map.",
+    image: "/images/mode-guess-by-name.png",
   },
   {
     value: "SHAPE",
     label: "Guess by shape",
     description: "A country is highlighted. Type its name.",
+    image: "/images/mode-guess-by-shape.png",
   },
 ] as const;
 
@@ -91,6 +94,47 @@ function OptionButton({
   );
 }
 
+/** Mode cards get their own treatment (an illustration up top) instead of sharing OptionButton's plain text layout. */
+function ModeOptionButton({
+  active,
+  onClick,
+  title,
+  subtitle,
+  image,
+}: {
+  active: boolean;
+  onClick: () => void;
+  title: string;
+  subtitle: string;
+  image: string;
+}) {
+  return (
+    <motion.button
+      whileHover={{ y: -2 }}
+      whileTap={{ scale: 0.98 }}
+      onClick={onClick}
+      className={`relative overflow-hidden rounded-xl border text-left transition-colors duration-150 ${
+        active ? cardActive : cardInactive
+      }`}
+    >
+      {active && <CheckBadge color="var(--primary)" />}
+      <div className="relative h-32 w-full border-b border-border-strong/40 bg-surface-2/50">
+        <Image
+          src={image}
+          alt=""
+          fill
+          sizes="(min-width: 640px) 50vw, 100vw"
+          className="object-cover object-[50%_35%]"
+        />
+      </div>
+      <div className="p-4">
+        <div className="font-display text-lg font-bold text-foreground">{title}</div>
+        <div className="text-sm text-muted">{subtitle}</div>
+      </div>
+    </motion.button>
+  );
+}
+
 /** The mode/difficulty/round-length picker, staged over the map with drifting clouds. */
 export function SetupScene() {
   const router = useRouter();
@@ -151,13 +195,13 @@ export function SetupScene() {
             </h2>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {MODES.map((m) => (
-                <OptionButton
+                <ModeOptionButton
                   key={m.value}
                   active={mode === m.value}
                   onClick={() => setMode(m.value)}
                   title={m.label}
                   subtitle={m.description}
-                  titleClassName="font-display text-lg font-bold text-foreground"
+                  image={m.image}
                 />
               ))}
             </div>

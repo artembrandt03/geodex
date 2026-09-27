@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { useSession } from "next-auth/react";
 import { ROUND_LENGTHS } from "@/lib/game/types";
-import { useBackdropExit } from "@/components/providers/MapBackdropProvider";
+import { useBackdropExit } from "@/components/providers/SharedMapProvider";
 import { CompassRose } from "./CompassRose";
 
 const MODES = [

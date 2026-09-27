@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { animate, motion, useMotionValue } from "framer-motion";
-import { WorldMap } from "@/components/game/WorldMap";
+import { useSharedGameMap } from "@/components/providers/SharedMapProvider";
 import { useRound } from "@/lib/game/useRound";
 import { normalizeAnswer } from "@/lib/game/normalizeAnswer";
 import { ROUND_LENGTHS } from "@/lib/game/types";
@@ -86,6 +86,31 @@ function ActiveRound({
       );
   }, []);
 
+  const current = state.questions[state.currentIndex];
+  const isRevealing = state.status === "revealing";
+  const guessedName = state.lastOutcome?.guessedCode
+    ? (countryNames.find((c) => c.code === state.lastOutcome!.guessedCode)?.name ?? null)
+    : null;
+
+  // Takes over the ONE shared WorldMap instance (mounted once for the whole
+  // app in SharedMapProvider) with these props instead of rendering a
+  // second WorldMap here — that second instance is exactly what used to
+  // refetch/reparse the country data and re-render ~200 SVG paths every
+  // time a round started. Safe to call unconditionally with every status:
+  // during "loading"/"error" current/lastOutcome are still undefined/null,
+  // which just yields a plain, non-interactive map.
+  useSharedGameMap({
+    interactive: config.mode === "NAME" && state.status === "playing",
+    highlightedCode: config.mode === "SHAPE" ? (current?.code ?? null) : null,
+    correctCode: state.lastOutcome?.code ?? null,
+    guessedCode: state.lastOutcome?.guessedCode ?? null,
+    resetSignal: state.currentIndex,
+    showZoomControls: true,
+    onCountryClick: (code) => {
+      if (config.mode === "NAME") submitGuess(code);
+    },
+  });
+
   if (state.status === "loading") {
     return (
       <div className="flex h-full items-center justify-center">
@@ -105,12 +130,6 @@ function ActiveRound({
     );
   }
 
-  const current = state.questions[state.currentIndex];
-  const isRevealing = state.status === "revealing";
-  const guessedName = state.lastOutcome?.guessedCode
-    ? (countryNames.find((c) => c.code === state.lastOutcome!.guessedCode)?.name ?? null)
-    : null;
-
   function handleShapeSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (isRevealing || !guessInput.trim()) return;
@@ -123,18 +142,14 @@ function ActiveRound({
   const progress = state.status === "finished" ? 1 : state.currentIndex / config.roundLength;
 
   return (
-    <div className="relative h-full w-full">
-      <WorldMap
-        interactive={config.mode === "NAME" && !isRevealing && state.status !== "finished"}
-        highlightedCode={config.mode === "SHAPE" ? current?.code : null}
-        correctCode={state.lastOutcome?.code ?? null}
-        guessedCode={state.lastOutcome?.guessedCode ?? null}
-        resetSignal={state.currentIndex}
-        onCountryClick={(code) => {
-          if (config.mode === "NAME") submitGuess(code);
-        }}
-      />
-
+    // pointer-events-none because the actual map now lives in a separate,
+    // persistent layer behind this one (see SharedMapProvider) instead of
+    // being a child of this div — without this, this div's own (invisible,
+    // but still hit-testable) box would silently swallow every click meant
+    // for the map underneath it. Each interactive piece below opts back in
+    // with its own pointer-events-auto, same as it already did for the
+    // overlay pieces that always floated above the map.
+    <div className="pointer-events-none relative h-full w-full">
       {/* Top overlay: progress + score */}
       <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-4 p-4">
         <div className="pointer-events-auto flex flex-col gap-1 rounded-xl border border-border bg-surface/85 px-4 py-2 shadow-lg backdrop-blur-md">

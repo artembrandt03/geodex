@@ -3,8 +3,8 @@ import { Geist, Geist_Mono, Cinzel } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { NavVisibilityProvider } from "@/components/providers/NavVisibilityProvider";
-import { MapBackdropProvider } from "@/components/providers/MapBackdropProvider";
-import { NavBar } from "@/components/layout/NavBar";
+import { SharedMapProvider } from "@/components/providers/SharedMapProvider";
+import { AppShell } from "@/components/layout/AppShell";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -38,12 +38,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="flex h-dvh flex-col overflow-hidden bg-background text-foreground">
         <AuthProvider>
           <NavVisibilityProvider>
-            <MapBackdropProvider>
-              <div className="relative z-10 flex flex-1 flex-col overflow-hidden">
-                <NavBar />
-                <main className="flex-1 overflow-y-auto">{children}</main>
-              </div>
-            </MapBackdropProvider>
+            <SharedMapProvider>
+              <AppShell>{children}</AppShell>
+            </SharedMapProvider>
           </NavVisibilityProvider>
         </AuthProvider>
       </body>

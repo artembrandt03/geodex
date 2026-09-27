@@ -1,7 +1,6 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 
 export interface CloudCurtainProps {
   /** "closing": sweeps in from both sides to fully cover the screen.
@@ -12,15 +11,15 @@ export interface CloudCurtainProps {
   onAnimationComplete?: () => void;
 }
 
-// A grid of clouds, not a background fill — but each DotLottieReact
-// instance is a real animated canvas/WebGL context, and a too-high count
-// (176 total across both panels, in an earlier pass) overwhelmed the
-// browser's context budget and left the transition stuck mid-render. This
-// is deliberately a much smaller grid that accepts some gaps between puffs
-// in exchange for actually rendering: many clouds forming a visible mass,
-// not a mathematically gapless one.
-const GRID_ROWS = 5;
-const GRID_COLS = 4;
+// Plain CSS shapes rather than the animated Lottie asset CloudLayer uses for
+// the ambient background — that's fine for a couple dozen clouds sitting
+// still, but this curtain needs many of them sliding across the screen at
+// once, and that many concurrent animated canvas/WebGL contexts (confirmed
+// live, twice: once it broke rendering outright, once it was just laggy)
+// is too expensive. A handful of plain, percentage-sized divs per cloud
+// costs the browser almost nothing by comparison, even at this count.
+const GRID_ROWS = 6;
+const GRID_COLS = 5;
 
 const PANEL_CLOUDS = Array.from({ length: GRID_ROWS * GRID_COLS }, (_, i) => {
   const row = Math.floor(i / GRID_COLS);
@@ -32,9 +31,24 @@ const PANEL_CLOUDS = Array.from({ length: GRID_ROWS * GRID_COLS }, (_, i) => {
     // the two panels meet, instead of leaving a sliver gap at either.
     topPct: ((row + 0.5) / GRID_ROWS) * 120 - 10 + (((i * 11) % 10) - 5),
     leftPct: ((col + 0.5) / GRID_COLS) * 120 - 10 + (((i * 17) % 10) - 5),
-    widthPct: 60 + ((i * 13) % 30),
+    widthPct: 34 + ((i * 13) % 22),
   };
 });
+
+// One cloud built from a handful of overlapping ellipses (all sized as % of
+// this wrapper, so the whole thing scales cleanly with the wrapper's own
+// width/height set by the grid above) rather than a real cloud asset.
+function CloudPuff() {
+  return (
+    <div className="relative h-full w-full">
+      <div className="absolute rounded-full bg-white" style={{ width: "58%", height: "72%", left: "21%", top: "18%" }} />
+      <div className="absolute rounded-full bg-white" style={{ width: "44%", height: "56%", left: "0%", top: "38%" }} />
+      <div className="absolute rounded-full bg-white" style={{ width: "50%", height: "60%", left: "48%", top: "34%" }} />
+      <div className="absolute rounded-full bg-white" style={{ width: "36%", height: "44%", left: "30%", top: "48%" }} />
+      <div className="absolute rounded-full bg-white" style={{ width: "30%", height: "38%", left: "64%", top: "50%" }} />
+    </div>
+  );
+}
 
 function CloudPanel() {
   return (
@@ -51,7 +65,7 @@ function CloudPanel() {
             transform: "translate(-50%, -50%)",
           }}
         >
-          <DotLottieReact src="/images/cloud.lottie" loop autoplay />
+          <CloudPuff />
         </div>
       ))}
     </div>

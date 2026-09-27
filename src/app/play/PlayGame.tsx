@@ -43,7 +43,7 @@ export function PlayGame() {
 
   if (!config) {
     return (
-      <div className="mx-auto max-w-md px-4 py-16 text-center animate-fade-up">
+      <div className="pointer-events-auto mx-auto max-w-md px-4 py-16 text-center animate-fade-up">
         <p className="mb-4 text-muted">That game setup isn&apos;t valid.</p>
         <Link href="/setup" className="text-primary underline underline-offset-4">
           Back to setup
@@ -121,7 +121,7 @@ function ActiveRound({
 
   if (state.status === "error") {
     return (
-      <div className="mx-auto max-w-md px-4 py-16 text-center animate-fade-up">
+      <div className="pointer-events-auto mx-auto max-w-md px-4 py-16 text-center animate-fade-up">
         <p className="mb-4 text-danger">{state.errorMessage}</p>
         <Link href="/setup" className="text-primary underline underline-offset-4">
           Back to setup
@@ -189,7 +189,7 @@ function ActiveRound({
           key="summary"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="absolute inset-0 flex items-center justify-center bg-background/60 backdrop-blur-sm"
+          className="pointer-events-auto absolute inset-0 flex items-center justify-center bg-background/60 backdrop-blur-sm"
         >
           <RoundSummary
             totalScore={state.totalScore}

@@ -15,7 +15,7 @@ export function NavBar() {
   if (hidden) return null;
 
   return (
-    <header className="relative z-20 border-b border-border bg-surface/70 backdrop-blur-md">
+    <header className="pointer-events-auto relative z-20 border-b border-border bg-surface/70 backdrop-blur-md">
       <nav className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
         <div className="flex items-center gap-5">
           <Link href="/setup" className="flex items-center gap-2 font-display text-lg font-bold tracking-tight">

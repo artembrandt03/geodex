@@ -12,32 +12,45 @@ export interface CloudCurtainProps {
   onAnimationComplete?: () => void;
 }
 
-const PANEL_CLOUD_COUNT = 10;
+// A grid, not a handful of clouds — each cell gets an oversized, jittered
+// cloud so neighbors overlap heavily in every direction. That overlap (not
+// a background fill) is what guarantees full coverage: the curtain is
+// built ONLY out of cloud shapes, nothing solid behind them.
+const GRID_ROWS = 11;
+const GRID_COLS = 8;
 
-// Deterministic, densely overlapping placement (no Math.random, keeps this
-// pure to render) so each panel reads as one solid mass of cloud rather
-// than individual puffs. A solid bg-surface fill behind them (see below)
-// guarantees full coverage regardless of any gaps between the shapes.
-const PANEL_CLOUDS = Array.from({ length: PANEL_CLOUD_COUNT }, (_, i) => ({
-  id: i,
-  top: `${(i * 23) % 85}%`,
-  offset: -10 + ((i * 19) % 100),
-  size: 340 + ((i * 29) % 220),
-}));
+// Each cloud shape has a lot of transparent padding around the actual puff
+// (confirmed by rendering the grid statically for review — a first pass at
+// 7x6 with 34-56%-wide clouds still left visible gaps between puffs), so
+// the clouds need to be considerably wider than their own grid cell to
+// actually touch their neighbors' visible shapes, not just their boxes.
+const PANEL_CLOUDS = Array.from({ length: GRID_ROWS * GRID_COLS }, (_, i) => {
+  const row = Math.floor(i / GRID_COLS);
+  const col = i % GRID_COLS;
+  return {
+    id: i,
+    // Grid centers spread slightly past both edges (-10% to 110%) so clouds
+    // bleed past the panel's outer edge and across the center seam where
+    // the two panels meet, instead of leaving a sliver gap at either.
+    topPct: ((row + 0.5) / GRID_ROWS) * 120 - 10 + (((i * 11) % 10) - 5),
+    leftPct: ((col + 0.5) / GRID_COLS) * 120 - 10 + (((i * 17) % 10) - 5),
+    widthPct: 52 + ((i * 13) % 30),
+  };
+});
 
-function CloudPanel({ side }: { side: "left" | "right" }) {
+function CloudPanel() {
   return (
-    <div className="relative h-full w-full bg-surface">
+    <div className="relative h-full w-full">
       {PANEL_CLOUDS.map((c) => (
         <div
           key={c.id}
           className="absolute"
           style={{
-            top: c.top,
-            left: side === "left" ? `${c.offset}%` : undefined,
-            right: side === "right" ? `${c.offset}%` : undefined,
-            width: c.size,
-            height: c.size * 0.62,
+            top: `${c.topPct}%`,
+            left: `${c.leftPct}%`,
+            width: `${c.widthPct}%`,
+            aspectRatio: "1.6",
+            transform: "translate(-50%, -50%)",
           }}
         >
           <DotLottieReact src="/images/cloud.lottie" loop autoplay />
@@ -70,7 +83,7 @@ export function CloudCurtain({ phase, duration = 0.6, onAnimationComplete }: Clo
         transition={{ duration, ease: [0.76, 0, 0.24, 1] }}
         onAnimationComplete={onAnimationComplete}
       >
-        <CloudPanel side="left" />
+        <CloudPanel />
       </motion.div>
       <motion.div
         className="absolute inset-y-0 right-0 w-1/2"
@@ -78,7 +91,7 @@ export function CloudCurtain({ phase, duration = 0.6, onAnimationComplete }: Clo
         animate={phase === "closing" ? closed : openRight}
         transition={{ duration, ease: [0.76, 0, 0.24, 1] }}
       >
-        <CloudPanel side="right" />
+        <CloudPanel />
       </motion.div>
     </div>
   );

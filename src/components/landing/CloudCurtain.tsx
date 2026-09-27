@@ -12,18 +12,16 @@ export interface CloudCurtainProps {
   onAnimationComplete?: () => void;
 }
 
-// A grid, not a handful of clouds — each cell gets an oversized, jittered
-// cloud so neighbors overlap heavily in every direction. That overlap (not
-// a background fill) is what guarantees full coverage: the curtain is
-// built ONLY out of cloud shapes, nothing solid behind them.
-const GRID_ROWS = 11;
-const GRID_COLS = 8;
+// A grid of clouds, not a background fill — but each DotLottieReact
+// instance is a real animated canvas/WebGL context, and a too-high count
+// (176 total across both panels, in an earlier pass) overwhelmed the
+// browser's context budget and left the transition stuck mid-render. This
+// is deliberately a much smaller grid that accepts some gaps between puffs
+// in exchange for actually rendering: many clouds forming a visible mass,
+// not a mathematically gapless one.
+const GRID_ROWS = 5;
+const GRID_COLS = 4;
 
-// Each cloud shape has a lot of transparent padding around the actual puff
-// (confirmed by rendering the grid statically for review — a first pass at
-// 7x6 with 34-56%-wide clouds still left visible gaps between puffs), so
-// the clouds need to be considerably wider than their own grid cell to
-// actually touch their neighbors' visible shapes, not just their boxes.
 const PANEL_CLOUDS = Array.from({ length: GRID_ROWS * GRID_COLS }, (_, i) => {
   const row = Math.floor(i / GRID_COLS);
   const col = i % GRID_COLS;
@@ -34,7 +32,7 @@ const PANEL_CLOUDS = Array.from({ length: GRID_ROWS * GRID_COLS }, (_, i) => {
     // the two panels meet, instead of leaving a sliver gap at either.
     topPct: ((row + 0.5) / GRID_ROWS) * 120 - 10 + (((i * 11) % 10) - 5),
     leftPct: ((col + 0.5) / GRID_COLS) * 120 - 10 + (((i * 17) % 10) - 5),
-    widthPct: 52 + ((i * 13) % 30),
+    widthPct: 60 + ((i * 13) % 30),
   };
 });
 

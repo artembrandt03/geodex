@@ -37,7 +37,7 @@ const cardInactive = "border-border-strong bg-surface-2/60 hover:bg-surface-2";
 function CheckBadge({ color }: { color: string }) {
   return (
     <span
-      className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold text-primary-foreground"
+      className="absolute right-2 top-2 z-10 flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold text-primary-foreground"
       style={{ backgroundColor: color }}
     >
       ✓
@@ -94,6 +94,15 @@ function OptionButton({
   );
 }
 
+// Idle: a slow, gentle bob + wobble, like a map card resting on a table.
+// Hover: lifts and tilts toward the player, as if being picked up for a closer look.
+const modeArtVariants = {
+  idle: { y: [0, -5, 0], rotate: [0, -1, 1, 0], scale: 1 },
+  hover: { y: -8, rotate: -2, scale: 1.08 },
+};
+const modeArtIdleTransition = { duration: 5, repeat: Infinity, ease: "easeInOut" } as const;
+const modeArtHoverTransition = { duration: 0.35, ease: "easeOut" } as const;
+
 /** Mode cards get their own treatment (an illustration up top) instead of sharing OptionButton's plain text layout. */
 function ModeOptionButton({
   active,
@@ -108,24 +117,41 @@ function ModeOptionButton({
   subtitle: string;
   image: string;
 }) {
+  const [hovered, setHovered] = useState(false);
+
   return (
     <motion.button
       whileHover={{ y: -2 }}
       whileTap={{ scale: 0.98 }}
+      onHoverStart={() => setHovered(true)}
+      onHoverEnd={() => setHovered(false)}
       onClick={onClick}
       className={`relative overflow-hidden rounded-xl border text-left transition-colors duration-150 ${
         active ? cardActive : cardInactive
       }`}
     >
       {active && <CheckBadge color="var(--primary)" />}
-      <div className="relative h-32 w-full border-b border-border-strong/40 bg-surface-2/50">
-        <Image
-          src={image}
-          alt=""
-          fill
-          sizes="(min-width: 640px) 50vw, 100vw"
-          className="object-cover object-[50%_35%]"
-        />
+      <div
+        className="relative h-40 w-full overflow-hidden border-b border-border-strong/40"
+        style={{
+          background:
+            "radial-gradient(ellipse at 50% 45%, color-mix(in srgb, var(--primary) 14%, transparent), transparent 70%)",
+        }}
+      >
+        <motion.div
+          className="absolute inset-4 drop-shadow-[0_6px_10px_rgba(43,29,16,0.35)]"
+          variants={modeArtVariants}
+          animate={hovered ? "hover" : "idle"}
+          transition={hovered ? modeArtHoverTransition : modeArtIdleTransition}
+        >
+          <Image
+            src={image}
+            alt=""
+            fill
+            sizes="(min-width: 640px) 50vw, 100vw"
+            className="object-contain"
+          />
+        </motion.div>
       </div>
       <div className="p-4">
         <div className="font-display text-lg font-bold text-foreground">{title}</div>

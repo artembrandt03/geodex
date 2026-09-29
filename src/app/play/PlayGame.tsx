@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { animate, motion, useMotionValue } from "framer-motion";
 import { useSharedGameMap } from "@/components/providers/SharedMapProvider";
+import type { WorldMapProps } from "@/components/game/WorldMap";
 import { useRound } from "@/lib/game/useRound";
 import { normalizeAnswer } from "@/lib/game/normalizeAnswer";
 import { ROUND_LENGTHS } from "@/lib/game/types";
@@ -92,6 +93,13 @@ function ActiveRound({
     ? (countryNames.find((c) => c.code === state.lastOutcome!.guessedCode)?.name ?? null)
     : null;
 
+  const handleCountryClick = useCallback(
+    (code: string | null) => {
+      if (config.mode === "NAME") submitGuess(code);
+    },
+    [config.mode, submitGuess],
+  );
+
   // Takes over the ONE shared WorldMap instance (mounted once for the whole
   // app in SharedMapProvider) with these props instead of rendering a
   // second WorldMap here — that second instance is exactly what used to
@@ -99,17 +107,38 @@ function ActiveRound({
   // time a round started. Safe to call unconditionally with every status:
   // during "loading"/"error" current/lastOutcome are still undefined/null,
   // which just yields a plain, non-interactive map.
-  useSharedGameMap({
-    interactive: config.mode === "NAME" && state.status === "playing",
-    highlightedCode: config.mode === "SHAPE" ? (current?.code ?? null) : null,
-    correctCode: state.lastOutcome?.code ?? null,
-    guessedCode: state.lastOutcome?.guessedCode ?? null,
-    resetSignal: state.currentIndex,
-    showZoomControls: true,
-    onCountryClick: (code) => {
-      if (config.mode === "NAME") submitGuess(code);
-    },
-  });
+  //
+  // Memoized (rather than a fresh object literal every render): useSharedGameMap
+  // hands this straight to SharedMapProvider's setState, and a brand-new
+  // object identity on every render fed an infinite loop (setState ->
+  // context value changes -> every consumer, including this one,
+  // re-renders -> new object -> setState again), which is what actually
+  // caused the "Maximum update depth exceeded" errors, the unresponsive
+  // nav bar, and the sluggish map drag (the loop was starving the main
+  // thread) all at once. Only rebuild it when a value that should actually
+  // reach the map changes.
+  const gameMapProps = useMemo<WorldMapProps>(
+    () => ({
+      interactive: config.mode === "NAME" && state.status === "playing",
+      highlightedCode: config.mode === "SHAPE" ? (current?.code ?? null) : null,
+      correctCode: state.lastOutcome?.code ?? null,
+      guessedCode: state.lastOutcome?.guessedCode ?? null,
+      resetSignal: state.currentIndex,
+      showZoomControls: true,
+      onCountryClick: handleCountryClick,
+    }),
+    [
+      config.mode,
+      state.status,
+      current?.code,
+      state.lastOutcome?.code,
+      state.lastOutcome?.guessedCode,
+      state.currentIndex,
+      handleCountryClick,
+    ],
+  );
+
+  useSharedGameMap(gameMapProps);
 
   if (state.status === "loading") {
     return (

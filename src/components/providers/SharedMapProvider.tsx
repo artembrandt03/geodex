@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { WorldMap, type WorldMapProps } from "@/components/game/WorldMap";
@@ -45,8 +45,19 @@ export function SharedMapProvider({ children }: { children: ReactNode }) {
   const visible = !HIDDEN_ROUTES.includes(pathname);
   const isDecorative = gameMapProps === null;
 
+  // setGameMapProps/setExiting are stable (useState setters) and
+  // exitDuration is a constant, but a plain object literal here would still
+  // get a new identity every render, and React re-renders every context
+  // consumer whenever the provider's value reference changes regardless of
+  // whether its contents did. Memoizing keeps that from cascading into
+  // consumers (like useSharedGameMap) for no reason.
+  const contextValue = useMemo<SharedMapContextValue>(
+    () => ({ setGameMapProps, setExiting, exitDuration: EXIT_DURATION }),
+    [setGameMapProps, setExiting],
+  );
+
   return (
-    <SharedMapContext.Provider value={{ setGameMapProps, setExiting, exitDuration: EXIT_DURATION }}>
+    <SharedMapContext.Provider value={contextValue}>
       <motion.div
         className="fixed inset-0 z-0 transition-opacity duration-300"
         style={{ opacity: visible ? 1 : 0, pointerEvents: visible ? "auto" : "none" }}
@@ -82,9 +93,13 @@ export function useBackdropExit() {
  * Takes over the shared WorldMap instance with the given props for as long
  * as the calling component is mounted — e.g. PlayGame driving it as the
  * interactive gameplay map. Releases it back to the decorative default
- * (ambient clouds return) on unmount. Call this on every render with
- * whatever props are currently correct; it keeps the shared map in sync
- * itself.
+ * (ambient clouds return) on unmount. `props` must be referentially stable
+ * across renders that don't actually change anything (e.g. memoized with
+ * useMemo) — this effect intentionally depends on it, and a fresh object
+ * literal every render previously caused an infinite loop: setGameMapProps
+ * changes this provider's state, which re-renders every context consumer
+ * (including the caller of this hook), which built a new object, which
+ * re-ran this effect, forever.
  */
 export function useSharedGameMap(props: WorldMapProps) {
   const ctx = useContext(SharedMapContext);
@@ -95,7 +110,7 @@ export function useSharedGameMap(props: WorldMapProps) {
 
   useEffect(() => {
     setGameMapProps(props);
-  });
+  }, [props, setGameMapProps]);
 
   useEffect(() => {
     return () => setGameMapProps(null);

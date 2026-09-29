@@ -98,11 +98,22 @@ function ActiveRound({
   // codebase's established fix for the react-hooks/set-state-in-effect rule
   // (see CLAUDE.md).
   const [manualFocusCode, setManualFocusCode] = useState<string | null>(null);
+  // Bumped on every request (see requestManualFocus) so re-focusing the same
+  // country twice in a row still re-triggers the zoom -- WorldMap's focus
+  // effect keys on this alongside the code, since the code alone wouldn't
+  // change and the effect wouldn't re-fire (confirmed live: the zoom button
+  // only ever worked once).
+  const [manualFocusNonce, setManualFocusNonce] = useState(0);
   const [manualFocusIndex, setManualFocusIndex] = useState(state.currentIndex);
   if (state.currentIndex !== manualFocusIndex) {
     setManualFocusIndex(state.currentIndex);
     setManualFocusCode(null);
   }
+
+  const requestManualFocus = useCallback((code: string) => {
+    setManualFocusCode(code);
+    setManualFocusNonce((n) => n + 1);
+  }, []);
 
   // Fetched for both modes: SHAPE needs it for the autocomplete list, NAME
   // needs it to name whatever country the player mis-clicked in feedback.
@@ -129,10 +140,10 @@ function ActiveRound({
       if (state.status === "playing" && config.mode === "NAME") {
         submitGuess(code);
       } else if (state.status === "revealing" && code) {
-        setManualFocusCode(code);
+        requestManualFocus(code);
       }
     },
-    [config.mode, state.status, submitGuess],
+    [config.mode, state.status, submitGuess, requestManualFocus],
   );
 
   // Takes over the ONE shared WorldMap instance (mounted once for the whole
@@ -163,6 +174,7 @@ function ActiveRound({
       guessedCode: state.lastOutcome?.guessedCode ?? null,
       resetSignal: state.currentIndex,
       manualFocusCode,
+      manualFocusNonce,
       showZoomControls: true,
       onCountryClick: handleCountryClick,
     }),
@@ -175,6 +187,7 @@ function ActiveRound({
       state.lastOutcome?.guessedCode,
       state.currentIndex,
       manualFocusCode,
+      manualFocusNonce,
       handleCountryClick,
     ],
   );
@@ -290,7 +303,7 @@ function ActiveRound({
                 Which country is highlighted?
               </p>
             )}
-            <ZoomButton label="Zoom in on this country" onClick={() => setManualFocusCode(current.code)} />
+            <ZoomButton label="Zoom in on this country" onClick={() => requestManualFocus(current.code)} />
           </div>
         </motion.div>
       )}

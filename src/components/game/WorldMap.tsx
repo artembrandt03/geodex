@@ -198,6 +198,14 @@ export interface WorldMapProps {
    * own, so it's safe to use pre-guess without giving away the answer.
    */
   manualFocusCode?: string | null;
+  /**
+   * Bump this (e.g. an incrementing counter) to re-trigger the manual focus
+   * animation even when manualFocusCode is unchanged — e.g. the player
+   * dragged away and clicked "zoom in" again on the same country. Without
+   * this, the focus effect's key wouldn't change, so the animation
+   * wouldn't replay (confirmed live: the zoom button only ever worked once).
+   */
+  manualFocusNonce?: number;
   /** Overrides the resting zoom level (e.g. a closer view for a purely decorative map). */
   defaultZoom?: number;
   /** Overrides the resting center coordinates ([longitude, latitude]). */
@@ -290,6 +298,7 @@ export function WorldMap({
   onCountryClick,
   resetSignal,
   manualFocusCode,
+  manualFocusNonce,
   defaultZoom,
   defaultCenter,
   showZoomControls = true,
@@ -444,7 +453,7 @@ export function WorldMap({
   // side effect, and setCenter/setZoom here happen asynchronously inside
   // animateViewTo's onUpdate, not synchronously in the effect body, so this
   // doesn't trip the react-hooks/set-state-in-effect lint rule).
-  const focusReadyKey = `${focusCodes.join(",")}|${featuresByCode ? "ready" : "pending"}`;
+  const focusReadyKey = `${focusCodes.join(",")}|${manualFocusCode ? (manualFocusNonce ?? 0) : "-"}|${featuresByCode ? "ready" : "pending"}`;
   useEffect(() => {
     if (focusCodes.length === 0 || !featuresByCode) return;
     const features = focusCodes

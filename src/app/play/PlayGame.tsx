@@ -290,10 +290,7 @@ function ActiveRound({
                 Which country is highlighted?
               </p>
             )}
-            <ZoomButton
-              label={`Zoom in on ${config.mode === "NAME" ? current.name : "the highlighted country"}`}
-              onClick={() => setManualFocusCode(current.code)}
-            />
+            <ZoomButton label="Zoom in on this country" onClick={() => setManualFocusCode(current.code)} />
           </div>
         </motion.div>
       )}
@@ -384,7 +381,7 @@ function ActiveRound({
 }
 
 /**
- * A small "zoom in on this country" affordance for the prompt card — some
+ * A "zoom in on this country" affordance for the prompt card — some
  * countries are too small to make out (or click precisely) at the map's
  * default framing. `unoptimized` sidesteps a real WebP-alpha decode bug
  * hit earlier with next/image's optimizer on transparent PNGs (see
@@ -395,12 +392,12 @@ function ZoomButton({ label, onClick }: { label: string; onClick: () => void }) 
     <motion.button
       type="button"
       onClick={onClick}
-      aria-label={label}
-      whileHover={{ scale: 1.1 }}
-      whileTap={{ scale: 0.94 }}
-      className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-accent-strong bg-surface/90 shadow-[inset_0_0_0_2px_var(--surface-2)]"
+      whileHover={{ scale: 1.03 }}
+      whileTap={{ scale: 0.97 }}
+      className="flex items-center gap-2 rounded-full border-2 border-accent-strong bg-surface/90 px-3 py-1.5 shadow-[inset_0_0_0_2px_var(--surface-2)]"
     >
       <Image src="/images/loupe.png" alt="" width={16} height={16} unoptimized />
+      <span className="text-xs font-medium text-foreground">{label}</span>
     </motion.button>
   );
 }

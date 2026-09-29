@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ComposableMap,
   Geographies,
@@ -174,8 +174,6 @@ function computeFocusView(
 }
 
 const COLORS = {
-  land: "var(--map-land)",
-  landHover: "var(--map-land-hover)",
   border: "var(--map-border)",
 };
 
@@ -200,6 +198,81 @@ export interface WorldMapProps {
   showZoomControls?: boolean;
 }
 
+/**
+ * Renders the ~200 country paths. Split out and memoized specifically so it
+ * does NOT take `center`/`zoom` as props: those change every frame during
+ * animateViewTo's pan/zoom animation, and this component previously lived
+ * inline in WorldMap's own render, so every one of those frames rebuilt all
+ * ~200 <Geography> elements from scratch (needed back when stroke width was
+ * computed from `zoom`, and fill from a `hoveredKey` state that changed on
+ * every mouse enter/leave). Combined with fast real mouse movement across
+ * many small countries, that was enough to overwhelm React's scheduler and
+ * trip a real "Maximum update depth exceeded" error. Hover fill is now
+ * plain CSS (`.geo-interactive:hover` in globals.css) and stroke width uses
+ * `vectorEffect="non-scaling-stroke"` instead of dividing by `zoom`, so
+ * nothing here depends on the animation at all — memoizing this component
+ * makes pan/zoom frames skip re-rendering it entirely.
+ */
+const CountryLayer = memo(function CountryLayer({
+  interactive,
+  highlightedCode,
+  correctCode,
+  guessedCode,
+  onCountryClick,
+  resolveCode,
+}: {
+  interactive: boolean;
+  highlightedCode?: string | null;
+  correctCode?: string | null;
+  guessedCode?: string | null;
+  onCountryClick?: (code: string | null) => void;
+  resolveCode: (geoId: string | number | undefined) => string | null;
+}) {
+  return (
+    <Geographies geography={GEOGRAPHY_URL}>
+      {({ geographies }) =>
+        geographies.map((geo) => {
+          const code = resolveCode(geo.id);
+          const isHighlighted = Boolean(highlightedCode && code === highlightedCode);
+          const isCorrect = Boolean(correctCode && code === correctCode);
+          const isWrongGuess = Boolean(
+            guessedCode && code === guessedCode && guessedCode !== correctCode,
+          );
+          const isFeedback = isCorrect || isWrongGuess;
+
+          const geoClassName = [
+            "geo-base",
+            interactive ? "geo-interactive" : null,
+            isCorrect ? "geo-correct-pulse" : isWrongGuess ? "geo-incorrect-pulse" : null,
+            isHighlighted ? "geo-highlighted" : null,
+          ]
+            .filter(Boolean)
+            .join(" ");
+
+          return (
+            <Geography
+              key={geo.rsmKey}
+              geography={geo}
+              className={geoClassName}
+              onClick={() => {
+                if (interactive) onCountryClick?.(code);
+              }}
+              style={{
+                stroke: COLORS.border,
+                strokeWidth: isFeedback ? 1.5 : 0.4,
+                vectorEffect: "non-scaling-stroke",
+                outline: "none",
+                cursor: interactive ? "pointer" : "default",
+                transition: "fill 200ms ease",
+              }}
+            />
+          );
+        })
+      }
+    </Geographies>
+  );
+});
+
 /** World map on an equirectangular (cylindrical) projection — pannable and zoomable. */
 export function WorldMap({
   interactive,
@@ -222,7 +295,6 @@ export function WorldMap({
     string,
     Feature<Geometry>
   > | null>(null);
-  const [hoveredKey, setHoveredKey] = useState<string | null>(null);
   const [center, setCenter] = useState<[number, number]>(restCenter);
   const [zoom, setZoom] = useState(restZoom);
   const isFirstResetSignal = useRef(true);
@@ -436,57 +508,14 @@ export function WorldMap({
           }}
         >
           <Graticule stroke="rgba(148, 163, 184, 0.08)" strokeWidth={0.5} />
-          <Geographies geography={GEOGRAPHY_URL}>
-            {({ geographies }) =>
-              geographies.map((geo) => {
-                const code = resolveCode(geo.id);
-                const isHighlighted = Boolean(highlightedCode && code === highlightedCode);
-                const isCorrect = Boolean(correctCode && code === correctCode);
-                const isWrongGuess = Boolean(
-                  guessedCode && code === guessedCode && guessedCode !== correctCode,
-                );
-                const isFeedback = isCorrect || isWrongGuess;
-
-                // Feedback/highlight fills are driven by their CSS animation
-                // instead (see geoClassName below) — this only covers the
-                // plain land/hover cases.
-                const fill = interactive && hoveredKey === geo.rsmKey ? COLORS.landHover : COLORS.land;
-
-                const geoClassName = isCorrect
-                  ? "geo-correct-pulse"
-                  : isWrongGuess
-                    ? "geo-incorrect-pulse"
-                    : isHighlighted
-                      ? "geo-highlighted"
-                      : undefined;
-
-                return (
-                  <Geography
-                    key={geo.rsmKey}
-                    geography={geo}
-                    className={geoClassName}
-                    onClick={() => {
-                      if (interactive) onCountryClick?.(code);
-                    }}
-                    onMouseEnter={() => interactive && setHoveredKey(geo.rsmKey)}
-                    onMouseLeave={() => interactive && setHoveredKey(null)}
-                    style={{
-                      // Feedback/highlight fills are driven entirely by their
-                      // CSS animation (geo-correct-pulse, geo-incorrect-pulse,
-                      // geo-highlighted) so the pulse can actually animate —
-                      // an inline fill here would just override it every frame.
-                      fill: geoClassName ? undefined : fill,
-                      stroke: COLORS.border,
-                      strokeWidth: isFeedback ? 1.5 / zoom : 0.4 / zoom,
-                      outline: "none",
-                      cursor: interactive ? "pointer" : "default",
-                      transition: "fill 200ms ease",
-                    }}
-                  />
-                );
-              })
-            }
-          </Geographies>
+          <CountryLayer
+            interactive={interactive}
+            highlightedCode={highlightedCode}
+            correctCode={correctCode}
+            guessedCode={guessedCode}
+            onCountryClick={onCountryClick}
+            resolveCode={resolveCode}
+          />
         </ZoomableGroup>
       </ComposableMap>
 

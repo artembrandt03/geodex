@@ -148,6 +148,22 @@ body {
   animation: pop-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
+/* Country resting fill, and (guess-by-name mode only) hover fill via plain
+   CSS :hover instead of a React hoveredKey state + onMouseEnter/onMouseLeave
+   pair (removed from WorldMap) — that pair re-rendered all ~200 country
+   paths on every hover change, which combined with the same cost recurring
+   every frame of the reveal-zoom pan animation (see WorldMap.tsx's
+   CountryLayer comment) could overwhelm React's scheduler during fast real
+   mouse movement, confirmed live as a "Maximum update depth exceeded"
+   error. The browser's own :hover does this with zero React involvement. */
+.geo-base {
+  fill: var(--map-land);
+}
+
+.geo-interactive:hover {
+  fill: var(--map-land-hover);
+}
+
 /* Highlighted country pulse (guess-by-shape target) */
 @keyframes geo-pulse {
   0%,

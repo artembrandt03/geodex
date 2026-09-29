@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { animate, motion, useMotionValue } from "framer-motion";
-import { useSharedGameMap } from "@/components/providers/SharedMapProvider";
+import { useBackdropExit, useSharedGameMap } from "@/components/providers/SharedMapProvider";
 import type { WorldMapProps } from "@/components/game/WorldMap";
 import { useRound } from "@/lib/game/useRound";
 import { normalizeAnswer } from "@/lib/game/normalizeAnswer";
@@ -41,6 +41,19 @@ export function PlayGame() {
   const config = useMemo(() => parseConfig(searchParams), [searchParams]);
   // Bumped to force a remount (fresh round) on "Play again" with identical params.
   const [replayToken, setReplayToken] = useState(0);
+  const { setExiting } = useBackdropExit();
+
+  // The setup screen sets this true right before navigating here, to play
+  // the shared map's zoom-in transition (see SharedMapProvider). Nothing
+  // else ever reset it back, so the map's wrapping layer stayed scaled up
+  // 1.15x via CSS transform for the entire round -- purely cosmetic-looking,
+  // but it also threw off WorldMap's own container-size measurements (the
+  // ResizeObserver reads the post-transform, inflated rect), which feeds
+  // the pan-clamping math. Reset it here, same pattern as SetupScene resets
+  // it on its own mount.
+  useEffect(() => {
+    setExiting(false);
+  }, [setExiting]);
 
   if (!config) {
     return (

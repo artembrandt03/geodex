@@ -48,7 +48,10 @@ const BASE_PROJECTION = geoEquirectangular().translate([VIEWBOX_WIDTH / 2, VIEWB
 // hand-roll a zoom-scaled version instead: it either clamped legitimate
 // reveal-zoom fits (a Panama/Poland reveal got clipped) or, once loosened,
 // let manual dragging reveal far more blank space than intended.
-const WORLD_TRANSLATE_EXTENT: [[number, number], [number, number]] = (() => {
+//
+// This is the world's TRUE bounds — see getTranslateExtent below for why
+// what's actually passed to ZoomableGroup needs to be padded beyond this.
+const WORLD_CONTENT_BOUNDS: [[number, number], [number, number]] = (() => {
   const halfWidth = BASE_PROJECTION([180, 0])![0] - VIEWBOX_WIDTH / 2;
   const halfHeight = VIEWBOX_HEIGHT / 2 - BASE_PROJECTION([0, 90])![1];
   return [
@@ -56,6 +59,34 @@ const WORLD_TRANSLATE_EXTENT: [[number, number], [number, number]] = (() => {
     [VIEWBOX_WIDTH / 2 + halfWidth, VIEWBOX_HEIGHT / 2 + halfHeight],
   ];
 })();
+
+// react-simple-maps always tells d3-zoom the viewport is the FULL nominal
+// 800x600 viewBox (ComposableMap's own width/height, which we never
+// override), even though preserveAspectRatio="slice" crops that down to
+// whatever sub-region `visibleViewBox` actually shows on screen once the
+// container's real aspect ratio differs from 4:3. d3-zoom's pan-clamping
+// math reserves margin for the rest of that nominal box as if it were still
+// visible, so at low zoom -- where the crop is a large fraction of the
+// pannable range -- dragging stops well short of the true edge (confirmed
+// live: couldn't reach the pole at the default zoom on a wide viewport, but
+// could once zoomed in enough that the crop became a negligible fraction of
+// the range). Padding translateExtent by the crop margin compensates for
+// this exactly at zoom 1 (the default, most-used view, and the case that
+// was actually reported broken); at higher zoom the same fixed padding
+// over-compensates a little (a small sliver of blank space beyond the true
+// edge becomes reachable), which is a minor, far more acceptable trade than
+// not being able to see the pole at all.
+function getTranslateExtent(visibleViewBox: {
+  width: number;
+  height: number;
+}): [[number, number], [number, number]] {
+  const padX = Math.max((VIEWBOX_WIDTH - visibleViewBox.width) / 2, 0);
+  const padY = Math.max((VIEWBOX_HEIGHT - visibleViewBox.height) / 2, 0);
+  return [
+    [WORLD_CONTENT_BOUNDS[0][0] - padX, WORLD_CONTENT_BOUNDS[0][1] - padY],
+    [WORLD_CONTENT_BOUNDS[1][0] + padX, WORLD_CONTENT_BOUNDS[1][1] + padY],
+  ];
+}
 
 function getDefaultZoomForViewport(baseZoom: number) {
   if (typeof window === "undefined") return baseZoom;
@@ -300,6 +331,11 @@ export function WorldMap({
     };
   }, []);
 
+  // See getTranslateExtent's own comment for why this needs padding beyond
+  // the world's true bounds, and why it's only recomputed on resize (not
+  // every zoom tick) — visibleViewBox only changes then.
+  const translateExtent = useMemo(() => getTranslateExtent(visibleViewBox), [visibleViewBox]);
+
   const featuresByCode = useMemo(() => {
     if (!codeByNumericId || !featuresByNumericId) return null;
     const byCode: Record<string, Feature<Geometry>> = {};
@@ -388,7 +424,7 @@ export function WorldMap({
           zoom={zoom}
           minZoom={MIN_ZOOM}
           maxZoom={MAX_ZOOM}
-          translateExtent={WORLD_TRANSLATE_EXTENT}
+          translateExtent={translateExtent}
           onMoveEnd={({ coordinates, zoom: z }) => {
             // Same non-finite guard as animateViewTo — an extreme drag
             // gesture landing outside the projection's domain could

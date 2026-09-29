@@ -6,6 +6,7 @@ import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { animate, motion, useMotionValue } from "framer-motion";
 import { useBackdropExit, useSharedGameMap } from "@/components/providers/SharedMapProvider";
+import { useRoundGuard } from "@/components/providers/RoundGuardProvider";
 import type { WorldMapProps } from "@/components/game/WorldMap";
 import { useRound } from "@/lib/game/useRound";
 import { normalizeAnswer } from "@/lib/game/normalizeAnswer";
@@ -130,6 +131,21 @@ function ActiveRound({
   const guessedName = state.lastOutcome?.guessedCode
     ? (countryNames.find((c) => c.code === state.lastOutcome!.guessedCode)?.name ?? null)
     : null;
+
+  // Guards nav-bar navigation/sign-out with a confirmation for as long as
+  // there's a round actually in progress to lose -- not during "loading"
+  // (nothing has started yet) or "finished" (nothing left to lose).
+  const { setGuardEnabled } = useRoundGuard();
+  const roundInProgress = state.status === "playing" || isRevealing;
+  useEffect(() => {
+    setGuardEnabled(roundInProgress);
+  }, [roundInProgress, setGuardEnabled]);
+  // Also release the guard on unmount (e.g. the confirmed "End round" itself
+  // navigates away, which unmounts this component before the effect above
+  // would otherwise get a chance to see status change).
+  useEffect(() => {
+    return () => setGuardEnabled(false);
+  }, [setGuardEnabled]);
 
   // While playing (NAME mode), a map click submits a guess. During the
   // reveal, the map stays clickable but repurposed: clicking any country

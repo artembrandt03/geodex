@@ -2,23 +2,40 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { useSession, signOut } from "next-auth/react";
 import { useNavVisibility } from "@/components/providers/NavVisibilityProvider";
+import { useRoundGuard } from "@/components/providers/RoundGuardProvider";
 
 export function NavBar() {
   const { data: session, status } = useSession();
   const pathname = usePathname();
+  const router = useRouter();
   const { hidden } = useNavVisibility();
+  const { guardedAction } = useRoundGuard();
 
   if (hidden) return null;
+
+  // Routes through guardedAction so leaving mid-round (see RoundGuardProvider)
+  // asks for confirmation instead of silently abandoning it; harmless when no
+  // round is active, since guardedAction just runs the navigation right away.
+  function goTo(href: string) {
+    return (e: React.MouseEvent) => {
+      e.preventDefault();
+      guardedAction(() => router.push(href));
+    };
+  }
 
   return (
     <header className="pointer-events-auto relative z-20 border-b border-border bg-surface/70 backdrop-blur-md">
       <nav className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
         <div className="flex items-center gap-5">
-          <Link href="/setup" className="flex items-center gap-2 font-display text-lg font-bold tracking-tight">
+          <Link
+            href="/setup"
+            onClick={goTo("/setup")}
+            className="flex items-center gap-2 font-display text-lg font-bold tracking-tight"
+          >
             <motion.span
               whileHover={{ rotate: 15, scale: 1.1 }}
               transition={{ type: "spring", stiffness: 300, damping: 12 }}
@@ -31,6 +48,7 @@ export function NavBar() {
 
           <Link
             href="/leaderboard"
+            onClick={goTo("/leaderboard")}
             className={`transition-opacity hover:opacity-80 ${
               pathname === "/leaderboard" ? "opacity-100" : "opacity-90"
             }`}
@@ -47,7 +65,7 @@ export function NavBar() {
               <motion.button
                 whileHover={{ scale: 1.04 }}
                 whileTap={{ scale: 0.96 }}
-                onClick={() => signOut({ callbackUrl: "/" })}
+                onClick={() => guardedAction(() => signOut({ callbackUrl: "/" }))}
                 className="rounded-lg border border-border-strong px-3 py-1.5 transition-colors hover:bg-surface-2"
               >
                 Sign out
@@ -55,10 +73,14 @@ export function NavBar() {
             </div>
           ) : (
             <div className="flex items-center gap-3">
-              <Link href="/login" className="text-muted transition-colors hover:text-foreground">
+              <Link
+                href="/login"
+                onClick={goTo("/login")}
+                className="text-muted transition-colors hover:text-foreground"
+              >
                 Log in
               </Link>
-              <Link href="/register">
+              <Link href="/register" onClick={goTo("/register")}>
                 <motion.span
                   whileHover={{ scale: 1.04 }}
                   whileTap={{ scale: 0.96 }}

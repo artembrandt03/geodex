@@ -4,6 +4,7 @@ import "./globals.css";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { NavVisibilityProvider } from "@/components/providers/NavVisibilityProvider";
 import { SharedMapProvider } from "@/components/providers/SharedMapProvider";
+import { RoundGuardProvider } from "@/components/providers/RoundGuardProvider";
 import { AppShell } from "@/components/layout/AppShell";
 
 const geistSans = Geist({
@@ -39,7 +40,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <AuthProvider>
           <NavVisibilityProvider>
             <SharedMapProvider>
-              <AppShell>{children}</AppShell>
+              <RoundGuardProvider>
+                <AppShell>{children}</AppShell>
+              </RoundGuardProvider>
             </SharedMapProvider>
           </NavVisibilityProvider>
         </AuthProvider>

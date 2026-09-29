@@ -303,7 +303,12 @@ function ActiveRound({
                 Which country is highlighted?
               </p>
             )}
-            <ZoomButton label="Zoom in on this country" onClick={() => requestManualFocus(current.code)} />
+            {/* Only after guessing -- zooming to the target beforehand would
+                narrow down its location for free in NAME mode, since the
+                map isn't otherwise showing where it is. */}
+            {isRevealing && (
+              <ZoomButton label="Zoom in on this country" onClick={() => requestManualFocus(current.code)} />
+            )}
           </div>
         </motion.div>
       )}

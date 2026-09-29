@@ -86,6 +86,29 @@ body {
   color: var(--primary-foreground);
 }
 
+/* Custom antique-styled cursors (a compass-arrow and a pointing hand) in
+   place of the OS default. Falls back to the native cursor if the image
+   fails to load or a browser refuses a custom cursor of this size. Hotspots
+   (the pixel that actually marks the click point) were picked by eye against
+   the trimmed, upscaled source images -- the arrow's tip and the fingertip. */
+html,
+body {
+  cursor: url("/images/cursor-default.png") 2 1, auto;
+}
+
+a,
+button,
+select,
+label,
+input[type="button"],
+input[type="submit"],
+input[type="checkbox"],
+input[type="radio"],
+[role="button"],
+[onclick] {
+  cursor: url("/images/cursor-pointer.png") 8 1, pointer;
+}
+
 /* Thin, unobtrusive scrollbar that fits the parchment theme */
 * {
   scrollbar-width: thin;

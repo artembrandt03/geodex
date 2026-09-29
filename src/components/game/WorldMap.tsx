@@ -278,7 +278,12 @@ const CountryLayer = memo(function CountryLayer({
                 strokeWidth: isFeedback ? 1.5 : 0.4,
                 vectorEffect: "non-scaling-stroke",
                 outline: "none",
-                cursor: interactive ? "pointer" : "default",
+                // Matches the site-wide custom cursors in globals.css --
+                // inline styles win over any CSS selector, so the global
+                // rule alone wouldn't reach these SVG paths.
+                cursor: interactive
+                  ? 'url("/images/cursor-pointer.png") 8 1, pointer'
+                  : 'url("/images/cursor-default.png") 2 1, default',
                 transition: "fill 200ms ease",
               }}
             />

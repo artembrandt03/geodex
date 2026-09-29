@@ -190,6 +190,14 @@ export interface WorldMapProps {
   onCountryClick?: (code: string | null) => void;
   /** Changing this value smoothly recenters the map to the default view (e.g. per question). */
   resetSignal?: string | number;
+  /**
+   * Zooms tightly onto just this country, overriding the correctCode/
+   * guessedCode reveal fit (which frames both at once) — for a player-
+   * requested closer look at a single country, e.g. a tiny one that's hard
+   * to see at the default framing. Doesn't add any color/highlight of its
+   * own, so it's safe to use pre-guess without giving away the answer.
+   */
+  manualFocusCode?: string | null;
   /** Overrides the resting zoom level (e.g. a closer view for a purely decorative map). */
   defaultZoom?: number;
   /** Overrides the resting center coordinates ([longitude, latitude]). */
@@ -281,6 +289,7 @@ export function WorldMap({
   guessedCode,
   onCountryClick,
   resetSignal,
+  manualFocusCode,
   defaultZoom,
   defaultCenter,
   showZoomControls = true,
@@ -419,11 +428,15 @@ export function WorldMap({
   }, [codeByNumericId, featuresByNumericId]);
 
   // Zoom to fit the reveal: just the correct country if the guess was
-  // right, or both the guess and the correct answer if it was wrong.
-  const focusCodes = useMemo(
-    () => Array.from(new Set([correctCode, guessedCode].filter((c): c is string => Boolean(c)))),
-    [correctCode, guessedCode],
-  );
+  // right, or both the guess and the correct answer if it was wrong. A
+  // manual focus request (the player asking for a closer look at one
+  // specific country) overrides this entirely rather than joining it —
+  // otherwise, re-focusing on the already-visible guessed/correct country
+  // would be a no-op, since it's already part of the union.
+  const focusCodes = useMemo(() => {
+    if (manualFocusCode) return [manualFocusCode];
+    return Array.from(new Set([correctCode, guessedCode].filter((c): c is string => Boolean(c))));
+  }, [manualFocusCode, correctCode, guessedCode]);
 
   // Smoothly zooms/pans onto the reveal once both the guess outcome and the
   // map's geometry are ready (an effect, not the render-time-adjustment

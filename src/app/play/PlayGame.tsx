@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { animate, motion, useMotionValue } from "framer-motion";
 import { useBackdropExit, useSharedGameMap } from "@/components/providers/SharedMapProvider";
@@ -89,6 +90,19 @@ function ActiveRound({
   const { state, submitGuess, advance } = useRound(config);
   const [guessInput, setGuessInput] = useState("");
   const [countryNames, setCountryNames] = useState<{ code: string; name: string }[]>([]);
+  // A player-requested closer look at one specific country (the "zoom in"
+  // loupe button), which overrides the map's usual framing until the next
+  // question — see WorldMapProps.manualFocusCode. Reset it when the question
+  // changes via the "adjust state during render" pattern (comparing against
+  // a tracked previous index) rather than a useEffect, matching this
+  // codebase's established fix for the react-hooks/set-state-in-effect rule
+  // (see CLAUDE.md).
+  const [manualFocusCode, setManualFocusCode] = useState<string | null>(null);
+  const [manualFocusIndex, setManualFocusIndex] = useState(state.currentIndex);
+  if (state.currentIndex !== manualFocusIndex) {
+    setManualFocusIndex(state.currentIndex);
+    setManualFocusCode(null);
+  }
 
   // Fetched for both modes: SHAPE needs it for the autocomplete list, NAME
   // needs it to name whatever country the player mis-clicked in feedback.
@@ -137,6 +151,7 @@ function ActiveRound({
       correctCode: state.lastOutcome?.code ?? null,
       guessedCode: state.lastOutcome?.guessedCode ?? null,
       resetSignal: state.currentIndex,
+      manualFocusCode,
       showZoomControls: true,
       onCountryClick: handleCountryClick,
     }),
@@ -147,6 +162,7 @@ function ActiveRound({
       state.lastOutcome?.code,
       state.lastOutcome?.guessedCode,
       state.currentIndex,
+      manualFocusCode,
       handleCountryClick,
     ],
   );
@@ -249,7 +265,7 @@ function ActiveRound({
           transition={{ duration: 0.3 }}
           className="pointer-events-none absolute inset-x-0 top-20 flex justify-center px-4"
         >
-          <div className="pointer-events-auto rounded-2xl border border-border bg-surface/85 px-6 py-3 text-center shadow-xl backdrop-blur-md">
+          <div className="pointer-events-auto flex flex-col items-center gap-2 rounded-2xl border border-border bg-surface/85 px-6 py-3 text-center shadow-xl backdrop-blur-md">
             {config.mode === "NAME" ? (
               <>
                 <p className="text-xs font-medium uppercase tracking-wide text-muted">
@@ -262,6 +278,10 @@ function ActiveRound({
                 Which country is highlighted?
               </p>
             )}
+            <ZoomButton
+              label={`Zoom in on ${config.mode === "NAME" ? current.name : "the highlighted country"}`}
+              onClick={() => setManualFocusCode(current.code)}
+            />
           </div>
         </motion.div>
       )}
@@ -348,6 +368,28 @@ function ActiveRound({
         )}
       </div>
     </div>
+  );
+}
+
+/**
+ * A small "zoom in on this country" affordance for the prompt card — some
+ * countries are too small to make out (or click precisely) at the map's
+ * default framing. `unoptimized` sidesteps a real WebP-alpha decode bug
+ * hit earlier with next/image's optimizer on transparent PNGs (see
+ * CLAUDE.md's "next/image WebP-alpha caution").
+ */
+function ZoomButton({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <motion.button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      whileHover={{ scale: 1.1 }}
+      whileTap={{ scale: 0.94 }}
+      className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-accent-strong bg-surface/90 shadow-[inset_0_0_0_2px_var(--surface-2)]"
+    >
+      <Image src="/images/loupe.png" alt="" width={16} height={16} unoptimized />
+    </motion.button>
   );
 }
 

@@ -120,11 +120,19 @@ function ActiveRound({
     ? (countryNames.find((c) => c.code === state.lastOutcome!.guessedCode)?.name ?? null)
     : null;
 
+  // While playing (NAME mode), a map click submits a guess. During the
+  // reveal, the map stays clickable but repurposed: clicking any country
+  // (e.g. the one you just guessed) zooms in on it instead, for a closer
+  // look — reuses the same manualFocusCode the "zoom in" button sets.
   const handleCountryClick = useCallback(
     (code: string | null) => {
-      if (config.mode === "NAME") submitGuess(code);
+      if (state.status === "playing" && config.mode === "NAME") {
+        submitGuess(code);
+      } else if (state.status === "revealing" && code) {
+        setManualFocusCode(code);
+      }
     },
-    [config.mode, submitGuess],
+    [config.mode, state.status, submitGuess],
   );
 
   // Takes over the ONE shared WorldMap instance (mounted once for the whole
@@ -146,7 +154,10 @@ function ActiveRound({
   // reach the map changes.
   const gameMapProps = useMemo<WorldMapProps>(
     () => ({
-      interactive: config.mode === "NAME" && state.status === "playing",
+      // Interactive both while actively guessing (NAME mode) and during the
+      // reveal (either mode) -- see handleCountryClick for what a click does
+      // in each case.
+      interactive: (config.mode === "NAME" && state.status === "playing") || isRevealing,
       highlightedCode: config.mode === "SHAPE" ? (current?.code ?? null) : null,
       correctCode: state.lastOutcome?.code ?? null,
       guessedCode: state.lastOutcome?.guessedCode ?? null,
@@ -158,6 +169,7 @@ function ActiveRound({
     [
       config.mode,
       state.status,
+      isRevealing,
       current?.code,
       state.lastOutcome?.code,
       state.lastOutcome?.guessedCode,

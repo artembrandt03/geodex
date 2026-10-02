@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { signIn } from "next-auth/react";
+import { PasswordField } from "@/components/auth/PasswordField";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -60,16 +61,12 @@ export default function LoginPage() {
               />
             </label>
 
-            <label className="flex flex-col gap-1 text-sm">
-              Password
-              <input
-                required
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="rounded-lg border border-border-strong bg-surface-2 px-3 py-2 outline-none focus:border-primary"
-              />
-            </label>
+            <PasswordField
+              label="Password"
+              value={password}
+              onChange={setPassword}
+              autoComplete="current-password"
+            />
 
             {error && <p className="text-sm text-danger">{error}</p>}
 

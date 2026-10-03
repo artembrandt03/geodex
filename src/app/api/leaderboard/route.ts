@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
-import { LEADERBOARD_SIZE, ROUND_LENGTHS } from "@/lib/game/types";
+import { getLeaderboard } from "@/lib/leaderboard";
+import { ROUND_LENGTHS } from "@/lib/game/types";
 
 const querySchema = z.object({
   mode: z.enum(["NAME", "SHAPE"]),
@@ -30,21 +30,7 @@ export async function GET(request: Request) {
 
   const { mode, difficulty, roundLength } = parsed.data;
 
-  // distinct on userId, ordered by score desc, keeps each player's best run.
-  // Ties go to whoever got there first, so podium spots are stable rather
-  // than shuffling between equal scores on every request.
-  const results = await prisma.gameResult.findMany({
-    where: { mode, difficulty, roundLength },
-    orderBy: [{ score: "desc" }, { createdAt: "asc" }],
-    distinct: ["userId"],
-    take: LEADERBOARD_SIZE,
-    select: {
-      score: true,
-      correct: true,
-      createdAt: true,
-      user: { select: { displayName: true } },
-    },
-  });
+  const results = await getLeaderboard({ mode, difficulty, roundLength });
 
   return NextResponse.json({
     entries: results.map((r, i) => ({

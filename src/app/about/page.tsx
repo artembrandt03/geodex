@@ -15,7 +15,15 @@ export const metadata: Metadata = {
  * windows side by side once there's room (md). DOM order is the mobile
  * reading order: me, project, news, attributions.
  */
-export default function AboutPage() {
+export default async function AboutPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  // /about?updates=open deep-links straight to the News popup (used by the
+  // title screen's News teaser).
+  const { updates } = await searchParams;
+
   return (
     <div className="relative h-full w-full overflow-hidden">
       <div className="relative z-10 flex h-full items-start justify-center overflow-y-auto px-4 py-10">
@@ -23,7 +31,7 @@ export default function AboutPage() {
           <AboutMeWindow />
           <ProjectWindow />
           <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-1">
-            <NewsWindow />
+            <NewsWindow initialOpen={updates === "open"} />
             <AttributionsWindow />
           </div>
         </div>

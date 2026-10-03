@@ -6,15 +6,19 @@ const FEATURES = [
   "Easy, Medium and Hard country pools",
   "Rounds of 5, 10, 15 or 20 countries",
   "A map you can pan and zoom, with a closer look at any country after you guess",
+  "A round stopwatch, speed bonuses and answer streaks",
   "Top-5 leaderboards for every mode, difficulty and round length",
+  "A profile page with your stats and match history",
   "Play as a guest, or sign up to compete on the leaderboards",
 ];
 
 const HOW_TO_PLAY = [
   "Pick a mode, a difficulty and a round length.",
   "Guess the country. You get one attempt each, and there's no time limit.",
-  "A correct answer is worth up to 50 points: answer within the first 5 seconds for the full amount, and it slowly drops toward 25 the longer you take.",
-  "A wrong answer scores 0. Your round score is the sum of every country.",
+  "A correct answer earns base points: 10 on Easy, 20 on Medium and 30 on Hard.",
+  "Answer quickly for a speed bonus: within 5 seconds doubles the base points, within 10 seconds adds half and within 15 adds a quarter.",
+  "Get three in a row right to start a streak bonus, which grows with every further correct answer.",
+  "A wrong answer scores 0, unless you picked a country that borders the right one. That earns 1 point.",
 ];
 
 const BUILT_WITH = [

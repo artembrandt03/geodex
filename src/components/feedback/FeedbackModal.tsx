@@ -5,7 +5,6 @@ import { Modal } from "@/components/ui/Modal";
 import {
   DESCRIPTION_MAX,
   FEEDBACK_KINDS,
-  FEEDBACK_LIMIT_PER_HOUR,
   MAX_ATTACHMENTS,
   MAX_ATTACHMENT_BYTES,
   MAX_TOTAL_ATTACHMENT_BYTES,
@@ -97,12 +96,7 @@ function FeedbackGate({ onClose }: { onClose: () => void }) {
     );
   }
 
-  return (
-    <FeedbackForm
-      onClose={onClose}
-      remaining={limit === "failed" ? null : limit.remaining}
-    />
-  );
+  return <FeedbackForm onClose={onClose} />;
 }
 
 /**
@@ -141,7 +135,7 @@ function formatSize(bytes: number) {
     : `${Math.max(1, Math.round(bytes / 1024))} KB`;
 }
 
-function FeedbackForm({ onClose, remaining }: { onClose: () => void; remaining: number | null }) {
+function FeedbackForm({ onClose }: { onClose: () => void }) {
   const [kind, setKind] = useState<FeedbackKindValue>("BUG");
   const [subject, setSubject] = useState("");
   const [description, setDescription] = useState("");
@@ -287,15 +281,6 @@ function FeedbackForm({ onClose, remaining }: { onClose: () => void; remaining: 
       <p className="leading-relaxed text-muted">
         Found a bug, or just want to tell us something? Send a bug report or feedback about
         anything at all and it goes straight to the developer.
-      </p>
-
-      <p className="rounded-lg border border-border-strong bg-surface-2/70 px-3.5 py-2.5 text-sm leading-snug">
-        <span className="font-semibold">
-          You can send up to {FEEDBACK_LIMIT_PER_HOUR} reports per hour.
-        </span>
-        {remaining !== null && remaining < FEEDBACK_LIMIT_PER_HOUR && (
-          <span className="font-semibold text-danger"> You have {remaining} left right now.</span>
-        )}
       </p>
 
       <div role="radiogroup" aria-label="What are you sending?" className="grid gap-3 sm:grid-cols-2">

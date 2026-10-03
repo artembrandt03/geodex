@@ -47,6 +47,16 @@ export function NavBar() {
             </motion.span>
             Geodex
           </Link>
+
+          <Link
+            href="/about"
+            onClick={goTo("/about")}
+            className={`font-display text-base font-semibold tracking-tight transition-colors hover:text-foreground ${
+              pathname === "/about" ? "text-foreground" : "text-muted"
+            }`}
+          >
+            About
+          </Link>
         </div>
 
         <div className="justify-self-center">

@@ -5,11 +5,14 @@ import { Modal } from "@/components/ui/Modal";
 import {
   DESCRIPTION_MAX,
   FEEDBACK_KINDS,
+  FEEDBACK_LIMIT_PER_HOUR,
   MAX_ATTACHMENTS,
   MAX_ATTACHMENT_BYTES,
   MAX_TOTAL_ATTACHMENT_BYTES,
   SUBJECT_MAX,
+  rateLimitMessage,
   type FeedbackKindValue,
+  type FeedbackLimitStatus,
 } from "@/lib/feedback";
 
 const KIND_LABELS: Record<FeedbackKindValue, { label: string; hint: string }> = {
@@ -33,8 +36,72 @@ export function FeedbackModal({ open, onClose }: { open: boolean; onClose: () =>
   return (
     <Modal open={open} onClose={onClose} title="Report a bug or send feedback" size="lg">
       {/* Mounted only while open, so every opening starts from a blank form. */}
-      <FeedbackForm onClose={onClose} />
+      <FeedbackGate onClose={onClose} />
     </Modal>
+  );
+}
+
+/**
+ * Asks the server how many reports this visitor has left before showing the
+ * form, so nobody writes a long report only to learn they can't send it. A
+ * failed check just shows the form: the server enforces the limit regardless.
+ */
+function FeedbackGate({ onClose }: { onClose: () => void }) {
+  const [limit, setLimit] = useState<FeedbackLimitStatus | "failed" | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function check(): Promise<FeedbackLimitStatus | "failed"> {
+      try {
+        const res = await fetch("/api/feedback", { cache: "no-store" });
+        return res.ok ? ((await res.json()) as FeedbackLimitStatus) : "failed";
+      } catch {
+        return "failed";
+      }
+    }
+    void check().then((result) => {
+      if (!cancelled) setLimit(result);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (limit === null) {
+    return <p className="py-10 text-center text-muted">One moment...</p>;
+  }
+
+  if (limit !== "failed" && limit.remaining === 0) {
+    return (
+      <div className="flex flex-col items-center gap-4 py-6 text-center">
+        <span
+          aria-hidden
+          // Inline: globals.css's unlayered `* { border-color }` beats border-<color> classes.
+          style={{ borderColor: "var(--danger)" }}
+          className="flex h-14 w-14 items-center justify-center rounded-full border-2 font-display text-2xl font-bold text-danger"
+        >
+          !
+        </span>
+        <p className="font-display text-xl font-semibold">You&apos;ve reached the limit</p>
+        <p className="max-w-sm leading-relaxed text-muted">
+          {rateLimitMessage(limit.retryAfterMinutes)}
+        </p>
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-lg bg-primary px-5 py-2.5 font-semibold text-primary-foreground transition-transform hover:scale-[1.03] active:scale-[0.98]"
+        >
+          Close
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <FeedbackForm
+      onClose={onClose}
+      remaining={limit === "failed" ? null : limit.remaining}
+    />
   );
 }
 
@@ -74,7 +141,7 @@ function formatSize(bytes: number) {
     : `${Math.max(1, Math.round(bytes / 1024))} KB`;
 }
 
-function FeedbackForm({ onClose }: { onClose: () => void }) {
+function FeedbackForm({ onClose, remaining }: { onClose: () => void; remaining: number | null }) {
   const [kind, setKind] = useState<FeedbackKindValue>("BUG");
   const [subject, setSubject] = useState("");
   const [description, setDescription] = useState("");
@@ -83,6 +150,7 @@ function FeedbackForm({ onClose }: { onClose: () => void }) {
   const [status, setStatus] = useState<"idle" | "sending" | "sent">("idle");
   const [error, setError] = useState<string | null>(null);
 
+  const errorBanner = useRef<HTMLDivElement>(null);
   const nextId = useRef(0);
   const fileInput = useRef<HTMLInputElement>(null);
   const baseId = useId();
@@ -152,6 +220,13 @@ function FeedbackForm({ onClose }: { onClose: () => void }) {
     }
   }
 
+  // The banner sits below a long form; make sure a failed send is actually seen.
+  function showError() {
+    requestAnimationFrame(() =>
+      errorBanner.current?.scrollIntoView({ block: "nearest", behavior: "smooth" }),
+    );
+  }
+
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (status === "sending") return;
@@ -170,12 +245,14 @@ function FeedbackForm({ onClose }: { onClose: () => void }) {
         const data = (await res.json().catch(() => null)) as { error?: string } | null;
         setError(data?.error ?? "Something went wrong sending that. Please try again.");
         setStatus("idle");
+        showError();
         return;
       }
       setStatus("sent");
     } catch {
       setError("Couldn't reach the server. Check your connection and try again.");
       setStatus("idle");
+      showError();
     }
   }
 
@@ -210,6 +287,15 @@ function FeedbackForm({ onClose }: { onClose: () => void }) {
       <p className="leading-relaxed text-muted">
         Found a bug, or just want to tell us something? Send a bug report or feedback about
         anything at all and it goes straight to the developer.
+      </p>
+
+      <p className="rounded-lg border border-border-strong bg-surface-2/70 px-3.5 py-2.5 text-sm leading-snug">
+        <span className="font-semibold">
+          You can send up to {FEEDBACK_LIMIT_PER_HOUR} reports per hour.
+        </span>
+        {remaining !== null && remaining < FEEDBACK_LIMIT_PER_HOUR && (
+          <span className="font-semibold text-danger"> You have {remaining} left right now.</span>
+        )}
       </p>
 
       <div role="radiogroup" aria-label="What are you sending?" className="grid gap-3 sm:grid-cols-2">
@@ -356,9 +442,20 @@ function FeedbackForm({ onClose }: { onClose: () => void }) {
       </p>
 
       {error && (
-        <p role="alert" className="text-sm text-danger">
-          {error}
-        </p>
+        <div
+          ref={errorBanner}
+          role="alert"
+          style={{ borderColor: "var(--danger)" }}
+          className="flex items-start gap-3 rounded-xl border-2 bg-danger/10 px-4 py-3"
+        >
+          <span
+            aria-hidden
+            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-danger font-display text-sm font-bold text-white"
+          >
+            !
+          </span>
+          <p className="font-semibold leading-snug text-danger">{error}</p>
+        </div>
       )}
 
       <div className="flex justify-end gap-3">

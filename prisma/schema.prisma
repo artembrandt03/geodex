@@ -21,6 +21,7 @@ model User {
   updatedAt    DateTime @updatedAt
 
   gameResults GameResult[]
+  feedback    Feedback[]
 }
 
 /// Country reference/seed data used to generate rounds.
@@ -60,4 +61,33 @@ enum Difficulty {
   EASY
   MEDIUM
   HARD
+}
+
+enum FeedbackKind {
+  BUG
+  FEEDBACK
+}
+
+/// A bug report or free-form feedback sent from the title screen. It's emailed
+/// to the maintainer, but also stored here so nothing is lost if the email
+/// fails, and so the submit endpoint can rate-limit by sender. Screenshots are
+/// email-only (just counted here).
+model Feedback {
+  id              String       @id @default(cuid())
+  kind            FeedbackKind
+  subject         String
+  description     String
+  /// Set when the sender was signed in; kept (as null) if the account is later deleted.
+  userId          String?
+  user            User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  /// HMAC of the sender's IP address, never the address itself. Only used for rate limiting.
+  ipHash          String?
+  userAgent       String?
+  attachmentCount Int          @default(0)
+  /// Null until the email goes out; `emailError` records why if it didn't.
+  emailedAt       DateTime?
+  emailError      String?
+  createdAt       DateTime     @default(now())
+
+  @@index([ipHash, createdAt])
 }

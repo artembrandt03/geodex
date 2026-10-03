@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
+import { MatchHistory } from "./MatchHistory";
 import { ProfileCard } from "./ProfileCard";
 import { StatsWindow } from "./StatsWindow";
 import { useProfile } from "./useProfile";
@@ -38,6 +39,7 @@ export function ProfileView() {
             </div>
             <div className="flex flex-col gap-6">
               <StatsWindow stats={profile.stats} />
+              <MatchHistory />
             </div>
           </div>
         )}

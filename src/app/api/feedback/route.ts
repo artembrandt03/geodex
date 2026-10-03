@@ -12,7 +12,7 @@ import {
 } from "@/lib/feedback";
 import { getMailConfig, sendFeedbackEmail } from "@/lib/feedbackEmail";
 
-const RATE_LIMIT_PER_HOUR = 5;
+const RATE_LIMIT_PER_HOUR = 2;
 const HOUR_MS = 60 * 60 * 1000;
 // A hair over the attachment cap, to cover the multipart framing + text fields.
 const MAX_REQUEST_BYTES = MAX_TOTAL_ATTACHMENT_BYTES + 256 * 1024;
@@ -98,7 +98,7 @@ export async function POST(request: Request) {
       where: { ipHash, createdAt: { gt: new Date(Date.now() - HOUR_MS) } },
     });
     if (recent >= RATE_LIMIT_PER_HOUR) {
-      return fail("You've sent a few messages already. Please try again later.", 429);
+      return fail("You've been rate limited. Please come back in an hour.", 429);
     }
   }
 

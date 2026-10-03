@@ -8,6 +8,7 @@ import { animate, motion, useMotionValue } from "framer-motion";
 import { useBackdropExit, useSharedGameMap } from "@/components/providers/SharedMapProvider";
 import { useRoundGuard } from "@/components/providers/RoundGuardProvider";
 import type { WorldMapProps } from "@/components/game/WorldMap";
+import { RoundStopwatch } from "@/components/game/RoundStopwatch";
 import { useRound } from "@/lib/game/useRound";
 import { normalizeAnswer } from "@/lib/game/normalizeAnswer";
 import { ROUND_LENGTHS } from "@/lib/game/types";
@@ -251,7 +252,7 @@ function ActiveRound({
     <div className="pointer-events-none relative h-full w-full">
       {/* Top overlay: progress + score */}
       <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-4 p-4">
-        <div className="pointer-events-auto flex flex-col gap-1 rounded-xl border border-border bg-surface/85 px-4 py-2 shadow-lg backdrop-blur-md">
+        <div className="pointer-events-auto flex flex-col gap-1.5 rounded-xl border border-border bg-surface/85 px-4 py-2 shadow-lg backdrop-blur-md">
           <span className="text-xs font-medium uppercase tracking-wide text-muted">
             {state.status === "finished"
               ? "Complete"
@@ -265,6 +266,11 @@ function ActiveRound({
               transition={{ duration: 0.4, ease: "easeOut" }}
             />
           </div>
+          <RoundStopwatch
+            outcomes={state.outcomes}
+            startedAt={state.questionStartedAt}
+            running={state.status === "playing"}
+          />
         </div>
 
         <div className="pointer-events-auto rounded-xl border border-border bg-surface/85 px-4 py-2 text-right shadow-lg backdrop-blur-md">

@@ -61,13 +61,13 @@ export function RoundSummary(props: RoundSummaryProps) {
       initial={{ opacity: 0, scale: 0.94, y: 14 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       transition={{ type: "spring", stiffness: 240, damping: 22 }}
-      className="relative mx-4 flex max-h-[calc(100vh-6rem)] w-[min(46rem,calc(100vw-2rem))] flex-col gap-4 overflow-hidden rounded-2xl border border-border bg-surface px-6 py-6 shadow-2xl sm:px-10"
+      className="relative mx-4 flex max-h-[calc(100vh-6rem)] w-[min(56rem,calc(100vw-2rem))] flex-col gap-4 overflow-y-auto rounded-2xl border border-border bg-surface px-6 py-5 shadow-2xl sm:px-10"
     >
       {(leaderboardRank !== null || accuracy >= 0.8) && (
         <Confetti pieces={leaderboardRank !== null && leaderboardRank <= 3 ? 44 : 22} />
       )}
 
-      <header className="flex flex-col items-center gap-1 text-center">
+      <header className="flex shrink-0 flex-col items-center gap-0.5 text-center">
         <h1 className="font-display text-3xl font-bold">Round complete</h1>
         <p className="text-sm text-muted">{boardLabel}</p>
         {leaderboardRank === null && (
@@ -77,7 +77,10 @@ export function RoundSummary(props: RoundSummaryProps) {
 
       {leaderboardRank !== null && <LeaderboardHype rank={leaderboardRank} boardLabel={boardLabel} />}
 
-      <div className="flex flex-col items-center gap-1">
+      {/* Score and stats beside the points history on wider screens, stacked on phones. */}
+      <div className="flex min-h-0 flex-1 flex-col gap-4 md:flex-row">
+      <div className="flex shrink-0 flex-col gap-4 md:w-64 md:justify-center">
+      <div className="flex shrink-0 flex-col items-center">
         <span className="text-xs font-medium uppercase tracking-widest text-muted">Total score</span>
         <CountUp
           value={totalScore}
@@ -85,7 +88,7 @@ export function RoundSummary(props: RoundSummaryProps) {
         />
       </div>
 
-      <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <dl className="grid shrink-0 grid-cols-2 gap-3">
         <StatTile label="Correct" value={`${correctCount} / ${config.roundLength}`} />
         <StatTile label="Total time" value={formatDuration(totalTimeMs)} />
         <StatTile label="Neighbors" value={String(neighborCount)} hint="close wrong guesses" />
@@ -104,8 +107,9 @@ export function RoundSummary(props: RoundSummaryProps) {
           }
         />
       </dl>
+      </div>
 
-      <section aria-labelledby="points-history" className="flex min-h-[8rem] flex-1 flex-col gap-2">
+      <section aria-labelledby="points-history" className="flex min-h-[12rem] min-w-0 flex-1 flex-col gap-2">
         <h2 id="points-history" className="font-display text-lg font-semibold">
           Points history
         </h2>
@@ -154,8 +158,9 @@ export function RoundSummary(props: RoundSummaryProps) {
           })}
         </ol>
       </section>
+      </div>
 
-      <div className="flex flex-col items-center gap-3">
+      <div className="flex shrink-0 flex-col items-center gap-3">
         {signedIn ? (
           saved && <p className="text-sm text-success">Round saved to your profile ✓</p>
         ) : (
@@ -207,9 +212,9 @@ function StatTile({
   icon?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center gap-0.5 rounded-xl border border-border bg-surface-2/60 px-3 py-3 text-center">
+    <div className="flex flex-col items-center gap-0.5 rounded-xl border border-border bg-surface-2/60 px-3 py-2 text-center">
       <dt className="text-xs font-medium uppercase tracking-wide text-muted">{label}</dt>
-      <dd className="flex items-center gap-1.5 font-display text-2xl font-bold tabular-nums">
+      <dd className="flex items-center gap-1.5 font-display text-xl font-bold tabular-nums">
         {icon}
         {value}
       </dd>
@@ -247,7 +252,7 @@ function LeaderboardHype({ rank, boardLabel }: { rank: number; boardLabel: strin
       transition={{ type: "spring", stiffness: 260, damping: 16, delay: 0.1 }}
       // Inline: globals.css's unlayered `* { border-color }` beats border-<color> classes.
       style={{ borderColor: color, boxShadow: `0 0 28px ${color}55, inset 0 0 20px ${color}22` }}
-      className="relative flex flex-col items-center gap-2 rounded-2xl border-2 bg-surface-2/70 px-6 py-5 text-center"
+      className="relative flex shrink-0 flex-col items-center gap-1 rounded-2xl border-2 bg-surface-2/70 px-6 py-3 text-center"
     >
       <div className="flex items-center gap-4">
         {podium ? (
@@ -256,7 +261,7 @@ function LeaderboardHype({ rank, boardLabel }: { rank: number; boardLabel: strin
             transition={{ duration: 2.6, repeat: Infinity, ease: "easeInOut" }}
             className="inline-flex"
           >
-            <Image src={podium.trophy} alt="" width={64} height={58} unoptimized className="drop-shadow-lg" />
+            <Image src={podium.trophy} alt="" width={52} height={47} unoptimized className="drop-shadow-lg" />
           </motion.span>
         ) : (
           <span
@@ -268,7 +273,7 @@ function LeaderboardHype({ rank, boardLabel }: { rank: number; boardLabel: strin
           </span>
         )}
         <div className="text-left">
-          <p className="font-display text-2xl font-extrabold uppercase tracking-wide sm:text-3xl">{headline}</p>
+          <p className="font-display text-2xl font-extrabold uppercase tracking-wide">{headline}</p>
           <p className="text-xs font-semibold uppercase tracking-widest text-muted">{boardLabel}</p>
         </div>
       </div>

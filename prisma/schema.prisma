@@ -37,19 +37,32 @@ model Country {
 
 /// One completed round, always tied to a registered user (guests aren't stored).
 model GameResult {
-  id          String     @id @default(cuid())
-  userId      String
-  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  mode        GameMode
-  difficulty  Difficulty
-  roundLength Int
-  score       Int
-  correct     Int
-  createdAt   DateTime   @default(now())
+  id             String     @id @default(cuid())
+  userId         String
+  user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mode           GameMode
+  difficulty     Difficulty
+  roundLength    Int
+  score          Int
+  correct        Int
+  /// Total time spent answering (excludes pauses on the reveal screen). 0 on
+  /// rounds saved before the stopwatch existed, so treat 0 as "unknown".
+  totalTimeMs    Int        @default(0)
+  /// Longest run of consecutive correct answers in the round.
+  bestStreak     Int        @default(0)
+  /// Wrong guesses that were a neighbor of the right answer.
+  neighborCount  Int        @default(0)
+  /// Which scoring rules produced `score` (see SCORING_VERSION in
+  /// lib/game/scoring.ts). Leaderboards and stats only use the current one,
+  /// since scores under different rules aren't comparable. Rows from before
+  /// versioning are 1.
+  scoringVersion Int        @default(1)
+  createdAt      DateTime   @default(now())
 
   // Powers "top score per user per mode/difficulty/roundLength" leaderboard queries.
   @@index([mode, difficulty, roundLength, score])
-  @@index([userId])
+  // Powers a player's own history and stats (newest first).
+  @@index([userId, createdAt])
 }
 
 enum GameMode {

@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
+import { ChangePasswordWindow } from "./ChangePasswordWindow";
 import { MatchHistory } from "./MatchHistory";
 import { ProfileCard } from "./ProfileCard";
 import { StatsWindow } from "./StatsWindow";
@@ -36,6 +37,7 @@ export function ProfileView() {
           <div className="grid w-full max-w-6xl gap-6 xl:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] xl:items-start">
             <div className="flex flex-col gap-6">
               <ProfileCard user={profile.user} />
+              <ChangePasswordWindow />
             </div>
             <div className="flex flex-col gap-6">
               <StatsWindow stats={profile.stats} />

@@ -104,7 +104,47 @@ export function NavBar() {
         <div className="flex items-center gap-5 justify-self-end text-sm">
           {status === "loading" ? null : session?.user ? (
             <div className="flex items-center gap-3">
-              <span className="text-muted">{session.user.name}</span>
+              {/* The name is the way to the profile page, so it's styled as a
+                  button (avatar, border, hover lift, tooltip) rather than as
+                  plain text that nobody would think to click. */}
+              <Link
+                href="/profile"
+                onClick={goTo("/profile")}
+                aria-label={`${session.user.name}, view your profile`}
+                className={`group relative flex items-center gap-2 rounded-full border border-border-strong py-1 pl-1 pr-3 transition-all hover:-translate-y-0.5 hover:bg-surface-2 hover:shadow-md ${
+                  pathname === "/profile" ? "bg-surface-2 text-foreground" : "text-muted hover:text-foreground"
+                }`}
+              >
+                {/* `unoptimized`: transparent PNG, see CLAUDE.md's WebP-alpha caution. */}
+                <span className="relative h-7 w-7 shrink-0 overflow-hidden rounded-full border-2 border-accent-strong bg-gradient-to-br from-surface to-surface-2">
+                  <Image
+                    src="/images/user-avatar.png"
+                    alt=""
+                    fill
+                    unoptimized
+                    className="object-contain p-0.5"
+                  />
+                </span>
+                <span className="max-w-32 truncate font-medium">{session.user.name}</span>
+                <svg
+                  viewBox="0 0 20 20"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2.2}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden
+                  className="h-3 w-3 transition-transform group-hover:translate-x-0.5"
+                >
+                  <path d="M7 4l6 6-6 6" />
+                </svg>
+                <span
+                  role="tooltip"
+                  className="pointer-events-none absolute right-0 top-full z-30 mt-2 whitespace-nowrap rounded-md border border-border-strong bg-surface px-2.5 py-1 text-xs font-medium text-foreground opacity-0 shadow-lg transition-opacity delay-150 group-hover:opacity-100 group-focus-visible:opacity-100"
+                >
+                  View your profile
+                </span>
+              </Link>
               <motion.button
                 whileHover={{ scale: 1.04 }}
                 whileTap={{ scale: 0.96 }}

@@ -8,6 +8,7 @@ import { useSession } from "next-auth/react";
 import { ROUND_LENGTHS } from "@/lib/game/types";
 import { useBackdropExit } from "@/components/providers/SharedMapProvider";
 import { CompassRose } from "./CompassRose";
+import { SetupSideWindows } from "./SetupSideWindows";
 
 const MODES = [
   {
@@ -196,100 +197,105 @@ export function SetupScene() {
   return (
     <div className="relative h-full w-full overflow-hidden">
       <div className="relative z-10 flex h-full items-center justify-center overflow-y-auto px-4 py-10">
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-          className="relative flex w-full max-w-3xl flex-col gap-9 overflow-hidden rounded-2xl border border-border bg-surface/80 p-10 shadow-2xl backdrop-blur-md"
-        >
-          <CompassRose className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 text-muted/10" />
-
-          <div className="text-center">
-            <h1 className="flex items-center justify-center gap-2 font-display text-5xl font-bold tracking-tight">
-              {/* eslint-disable-next-line @next/next/no-img-element -- keep the animation */}
-              <img src="/images/earth-rotating.webp" alt="" width={48} height={48} className="rounded-full" />
-              Geodex
-            </h1>
-            <p className="mt-3 text-lg text-muted">
-              Pick a mode, a difficulty, and a round length to get started.
-            </p>
-          </div>
-
-          <section className="flex flex-col gap-3">
-            <h2 className="font-display text-sm font-semibold uppercase tracking-wide text-muted">
-              Mode
-            </h2>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {MODES.map((m) => (
-                <ModeOptionButton
-                  key={m.value}
-                  active={mode === m.value}
-                  onClick={() => setMode(m.value)}
-                  title={m.label}
-                  subtitle={m.description}
-                  image={m.image}
-                />
-              ))}
-            </div>
-          </section>
-
-          <section className="flex flex-col gap-3">
-            <h2 className="font-display text-sm font-semibold uppercase tracking-wide text-muted">
-              Difficulty
-            </h2>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              {DIFFICULTIES.map((d) => (
-                <OptionButton
-                  key={d.value}
-                  active={difficulty === d.value}
-                  onClick={() => setDifficulty(d.value)}
-                  title={d.label}
-                  subtitle={d.description}
-                  accentColor={d.color}
-                />
-              ))}
-            </div>
-          </section>
-
-          <section className="flex flex-col gap-3">
-            <h2 className="font-display text-sm font-semibold uppercase tracking-wide text-muted">
-              Round length
-            </h2>
-            <div className="grid grid-cols-4 gap-3">
-              {ROUND_LENGTHS.map((n) => (
-                <motion.button
-                  key={n}
-                  whileHover={{ y: -2 }}
-                  whileTap={{ scale: 0.96 }}
-                  onClick={() => setRoundLength(n)}
-                  className={`relative rounded-xl border py-3.5 text-center text-lg font-medium transition-colors duration-150 ${
-                    roundLength === n ? cardActive : cardInactive
-                  }`}
-                >
-                  {roundLength === n && <CheckBadge color="var(--primary)" />}
-                  {n}
-                </motion.button>
-              ))}
-            </div>
-          </section>
-
-          <motion.button
-            whileHover={{ scale: transitioning ? 1 : 1.02 }}
-            whileTap={{ scale: transitioning ? 1 : 0.98 }}
-            onClick={startGame}
-            disabled={transitioning}
-            className="rounded-xl bg-primary px-6 py-3.5 text-lg font-semibold text-primary-foreground shadow-lg shadow-primary/20 disabled:opacity-70"
+        {/* Exactly as wide as the panel, so SetupSideWindows can hang off its right edge. */}
+        <div className="relative w-full max-w-3xl">
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+            className="relative flex w-full flex-col gap-9 overflow-hidden rounded-2xl border border-border bg-surface/80 p-10 shadow-2xl backdrop-blur-md"
           >
-            {session?.user ? "Start game" : "Play as guest"}
-          </motion.button>
+            <CompassRose className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 text-muted/10" />
 
-          {!session?.user && (
-            <p className="-mt-6 text-center text-sm text-muted">
-              Playing as a guest. Your score won&apos;t be saved to the
-              leaderboard.
-            </p>
-          )}
-        </motion.div>
+            <div className="text-center">
+              <h1 className="flex items-center justify-center gap-2 font-display text-5xl font-bold tracking-tight">
+                {/* eslint-disable-next-line @next/next/no-img-element -- keep the animation */}
+                <img src="/images/earth-rotating.webp" alt="" width={48} height={48} className="rounded-full" />
+                Geodex
+              </h1>
+              <p className="mt-3 text-lg text-muted">
+                Pick a mode, a difficulty, and a round length to get started.
+              </p>
+            </div>
+
+            <section className="flex flex-col gap-3">
+              <h2 className="font-display text-sm font-semibold uppercase tracking-wide text-muted">
+                Mode
+              </h2>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {MODES.map((m) => (
+                  <ModeOptionButton
+                    key={m.value}
+                    active={mode === m.value}
+                    onClick={() => setMode(m.value)}
+                    title={m.label}
+                    subtitle={m.description}
+                    image={m.image}
+                  />
+                ))}
+              </div>
+            </section>
+
+            <section className="flex flex-col gap-3">
+              <h2 className="font-display text-sm font-semibold uppercase tracking-wide text-muted">
+                Difficulty
+              </h2>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                {DIFFICULTIES.map((d) => (
+                  <OptionButton
+                    key={d.value}
+                    active={difficulty === d.value}
+                    onClick={() => setDifficulty(d.value)}
+                    title={d.label}
+                    subtitle={d.description}
+                    accentColor={d.color}
+                  />
+                ))}
+              </div>
+            </section>
+
+            <section className="flex flex-col gap-3">
+              <h2 className="font-display text-sm font-semibold uppercase tracking-wide text-muted">
+                Round length
+              </h2>
+              <div className="grid grid-cols-4 gap-3">
+                {ROUND_LENGTHS.map((n) => (
+                  <motion.button
+                    key={n}
+                    whileHover={{ y: -2 }}
+                    whileTap={{ scale: 0.96 }}
+                    onClick={() => setRoundLength(n)}
+                    className={`relative rounded-xl border py-3.5 text-center text-lg font-medium transition-colors duration-150 ${
+                      roundLength === n ? cardActive : cardInactive
+                    }`}
+                  >
+                    {roundLength === n && <CheckBadge color="var(--primary)" />}
+                    {n}
+                  </motion.button>
+                ))}
+              </div>
+            </section>
+
+            <motion.button
+              whileHover={{ scale: transitioning ? 1 : 1.02 }}
+              whileTap={{ scale: transitioning ? 1 : 0.98 }}
+              onClick={startGame}
+              disabled={transitioning}
+              className="rounded-xl bg-primary px-6 py-3.5 text-lg font-semibold text-primary-foreground shadow-lg shadow-primary/20 disabled:opacity-70"
+            >
+              {session?.user ? "Start game" : "Play as guest"}
+            </motion.button>
+
+            {!session?.user && (
+              <p className="-mt-6 text-center text-sm text-muted">
+                Playing as a guest. Your score won&apos;t be saved to the
+                leaderboard.
+              </p>
+            )}
+          </motion.div>
+
+          <SetupSideWindows />
+        </div>
       </div>
     </div>
   );

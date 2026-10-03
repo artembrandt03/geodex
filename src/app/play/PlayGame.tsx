@@ -4,14 +4,17 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { animate, motion, useMotionValue } from "framer-motion";
 import { useBackdropExit, useSharedGameMap } from "@/components/providers/SharedMapProvider";
 import { useRoundGuard } from "@/components/providers/RoundGuardProvider";
 import type { WorldMapProps } from "@/components/game/WorldMap";
 import { AnswerBanner } from "@/components/game/AnswerBanner";
 import { RoundStopwatch } from "@/components/game/RoundStopwatch";
+import { RoundSummary } from "@/components/game/RoundSummary";
 import { StreakBadge } from "@/components/game/StreakBadge";
 import { useRound } from "@/lib/game/useRound";
+import { totalTimeMs } from "@/lib/game/time";
 import { normalizeAnswer } from "@/lib/game/normalizeAnswer";
 import { ROUND_LENGTHS } from "@/lib/game/types";
 import type { RoundConfig } from "@/lib/game/types";
@@ -92,6 +95,7 @@ function ActiveRound({
   onPlayAgain: () => void;
 }) {
   const { state, submitGuess, advance } = useRound(config);
+  const { data: session } = useSession();
   const [guessInput, setGuessInput] = useState("");
   const [countryNames, setCountryNames] = useState<{ code: string; name: string }[]>([]);
   // A player-requested closer look at one specific country (the "zoom in"
@@ -128,6 +132,11 @@ function ActiveRound({
         setCountryNames(data.countries),
       );
   }, []);
+
+  const countryNameByCode = useMemo(
+    () => new Map(countryNames.map((c) => [c.code, c.name])),
+    [countryNames],
+  );
 
   const current = state.questions[state.currentIndex];
   const isRevealing = state.status === "revealing";
@@ -302,10 +311,18 @@ function ActiveRound({
           className="pointer-events-auto absolute inset-0 flex items-center justify-center bg-background/60 backdrop-blur-sm"
         >
           <RoundSummary
+            config={config}
+            questions={state.questions}
+            outcomes={state.outcomes}
             totalScore={state.totalScore}
             correctCount={state.correctCount}
-            roundLength={config.roundLength}
+            bestStreak={state.bestStreak}
+            neighborCount={state.neighborCount}
+            totalTimeMs={totalTimeMs(state.outcomes)}
+            countryNames={countryNameByCode}
+            signedIn={Boolean(session?.user)}
             saved={state.saved}
+            leaderboardRank={state.leaderboardRank}
             onPlayAgain={onPlayAgain}
           />
         </motion.div>
@@ -440,115 +457,5 @@ function AnimatedScore({ value }: { value: number }) {
     <span key={value} className="block font-display text-xl font-bold text-primary animate-score-bump">
       {display}
     </span>
-  );
-}
-
-const CONFETTI_COLORS = ["var(--primary)", "var(--accent)", "var(--success)"];
-
-function performanceMessage(accuracy: number): string {
-  if (accuracy === 1) return "Perfect round!";
-  if (accuracy >= 0.8) return "Excellent work";
-  if (accuracy >= 0.5) return "Nice job";
-  if (accuracy > 0) return "Keep practicing";
-  return "Tough round, try again";
-}
-
-function RoundSummary({
-  totalScore,
-  correctCount,
-  roundLength,
-  saved,
-  onPlayAgain,
-}: {
-  totalScore: number;
-  correctCount: number;
-  roundLength: number;
-  saved: boolean;
-  onPlayAgain: () => void;
-}) {
-  const accuracy = correctCount / roundLength;
-  const celebrate = accuracy >= 0.8;
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.9, y: 12 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      transition={{ type: "spring", stiffness: 260, damping: 22 }}
-      className="relative mx-4 flex max-w-md flex-col items-center gap-3 rounded-2xl border border-border bg-surface px-8 py-10 text-center shadow-2xl"
-    >
-      {celebrate && <Confetti />}
-      <h1 className="font-display text-3xl font-bold">Round complete</h1>
-      <p className="font-medium text-accent">{performanceMessage(accuracy)}</p>
-      <motion.p
-        initial={{ scale: 0.6 }}
-        animate={{ scale: 1 }}
-        transition={{ type: "spring", stiffness: 300, damping: 15, delay: 0.15 }}
-        className="font-display text-6xl font-extrabold text-primary"
-      >
-        {totalScore}
-      </motion.p>
-      <p className="text-muted">
-        {correctCount} / {roundLength} correct
-      </p>
-      {saved && <p className="text-sm text-success">Saved to the leaderboard ✓</p>}
-
-      <div className="mt-4 flex flex-wrap justify-center gap-3">
-        <motion.button
-          onClick={onPlayAgain}
-          whileHover={{ scale: 1.03 }}
-          whileTap={{ scale: 0.97 }}
-          className="rounded-lg bg-primary px-4 py-2 font-medium text-primary-foreground"
-        >
-          Play again
-        </motion.button>
-        <Link
-          href="/leaderboard"
-          className="rounded-lg border border-border-strong px-4 py-2 font-medium transition-colors hover:bg-surface-2"
-        >
-          Leaderboard
-        </Link>
-        <Link
-          href="/setup"
-          className="rounded-lg border border-border-strong px-4 py-2 font-medium transition-colors hover:bg-surface-2"
-        >
-          Home
-        </Link>
-      </div>
-    </motion.div>
-  );
-}
-
-const CONFETTI_PIECE_COUNT = 18;
-// Deterministic "looks random" jitter (no Math.random) so the component
-// stays pure to render — a purely decorative burst doesn't need true
-// randomness, just visual variety.
-const CONFETTI_PIECES = Array.from({ length: CONFETTI_PIECE_COUNT }, (_, i) => ({
-  id: i,
-  angle: (i / CONFETTI_PIECE_COUNT) * Math.PI * 2,
-  distance: 90 + ((i * 37) % 70),
-  color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
-  delay: ((i * 13) % 15) / 100,
-}));
-
-/** A small celebratory burst of particles for a strong round. Purely decorative. */
-function Confetti() {
-  return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl">
-      {CONFETTI_PIECES.map((p) => (
-        <motion.span
-          key={p.id}
-          initial={{ opacity: 1, x: 0, y: 0, scale: 1 }}
-          animate={{
-            opacity: 0,
-            x: Math.cos(p.angle) * p.distance,
-            y: Math.sin(p.angle) * p.distance - 20,
-            scale: 0.4,
-          }}
-          transition={{ duration: 1, delay: p.delay, ease: "easeOut" }}
-          className="absolute left-1/2 top-16 h-2 w-2 rounded-full"
-          style={{ backgroundColor: p.color }}
-        />
-      ))}
-    </div>
   );
 }

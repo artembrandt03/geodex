@@ -11,12 +11,20 @@ export default function RegisterPage() {
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     setError(null);
+
+    // Only a typo guard -- the API never needs the confirmation value.
+    if (password !== confirmPassword) {
+      setError("Passwords don't match");
+      return;
+    }
+
     setSubmitting(true);
 
     try {
@@ -108,7 +116,18 @@ export default function RegisterPage() {
               />
             </label>
 
-            {error && <p className="text-sm text-danger">{error}</p>}
+            <label className="flex flex-col gap-1 text-sm">
+              Confirm password
+              <input
+                required
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="rounded-lg border border-border-strong bg-surface-2 px-3 py-2 outline-none focus:border-primary"
+              />
+            </label>
+
+            {error &&<p className="text-sm text-danger">{error}</p>}
 
             <motion.button
               whileHover={{ scale: submitting ? 1 : 1.02 }}

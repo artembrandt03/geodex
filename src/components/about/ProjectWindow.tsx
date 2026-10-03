@@ -53,35 +53,39 @@ export function ProjectWindow() {
         </p>
       </Section>
 
-      <div className="grid gap-5 md:grid-cols-2">
-        <Section title="Features">
-          <ul className="flex flex-col gap-2">
-            {FEATURES.map((feature) => (
-              <li key={feature} className="flex gap-2.5 leading-snug">
-                <span aria-hidden className="mt-0.5 text-accent-strong">
-                  ◆
-                </span>
-                <span>{feature}</span>
-              </li>
-            ))}
-          </ul>
-        </Section>
+      {/* Two columns only when the window itself is wide enough (container
+          query); in the three-column About layout it's often not. */}
+      <div className="@container">
+        <div className="grid gap-5 @xl:grid-cols-2">
+          <Section title="Features">
+            <ul className="flex flex-col gap-2">
+              {FEATURES.map((feature) => (
+                <li key={feature} className="flex gap-2.5 leading-snug">
+                  <span aria-hidden className="mt-0.5 text-accent-strong">
+                    ◆
+                  </span>
+                  <span>{feature}</span>
+                </li>
+              ))}
+            </ul>
+          </Section>
 
-        <Section title="How to play">
-          <ol className="flex flex-col gap-2.5">
-            {HOW_TO_PLAY.map((step, i) => (
-              <li key={step} className="flex gap-3 leading-snug">
-                <span
-                  aria-hidden
-                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-accent-strong font-display text-xs font-bold text-primary-hover"
-                >
-                  {i + 1}
-                </span>
-                <span>{step}</span>
-              </li>
-            ))}
-          </ol>
-        </Section>
+          <Section title="How to play">
+            <ol className="flex flex-col gap-2.5">
+              {HOW_TO_PLAY.map((step, i) => (
+                <li key={step} className="flex gap-3 leading-snug">
+                  <span
+                    aria-hidden
+                    className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-accent-strong font-display text-xs font-bold text-primary-hover"
+                  >
+                    {i + 1}
+                  </span>
+                  <span>{step}</span>
+                </li>
+              ))}
+            </ol>
+          </Section>
+        </div>
       </div>
 
       <Section title="Built with">

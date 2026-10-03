@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { AboutMeWindow } from "@/components/about/AboutMeWindow";
+import { ProjectWindow } from "@/components/about/ProjectWindow";
 
 export const metadata: Metadata = {
   title: "About | Geodex",
@@ -11,6 +12,7 @@ export default function AboutPage() {
       <div className="relative z-10 flex h-full items-start justify-center overflow-y-auto px-4 py-10">
         <div className="flex w-full max-w-5xl flex-col gap-6">
           <AboutMeWindow />
+          <ProjectWindow />
         </div>
       </div>
     </div>

@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import { scoreAnswer } from "./scoring";
+import { isNeighbor, type NeighborMap } from "./neighbors";
+import { totalTimeMs } from "./time";
 import type { QuestionOutcome, RoundConfig, RoundQuestion } from "./types";
 
 export type RoundStatus = "loading" | "playing" | "revealing" | "finished" | "error";
@@ -14,60 +16,82 @@ export interface RoundState {
   outcomes: QuestionOutcome[];
   totalScore: number;
   correctCount: number;
+  /** Consecutive correct answers right now. */
+  streak: number;
+  bestStreak: number;
+  /** Wrong guesses that bordered the right answer. */
+  neighborCount: number;
+  /** When the current question was shown (ms epoch); drives the live stopwatch. */
+  questionStartedAt: number | null;
   /** Set briefly after a guess, before advancing to the next question. */
   lastOutcome: QuestionOutcome | null;
   errorMessage: string | null;
   /** Persisted to the leaderboard? Only true once /api/rounds/complete succeeds. */
   saved: boolean;
+  /** 1-based place on the leaderboard if this round made the top 5, once saved. */
+  leaderboardRank: number | null;
+}
+
+const INITIAL_STATE: RoundState = {
+  status: "loading",
+  questions: [],
+  currentIndex: 0,
+  outcomes: [],
+  totalScore: 0,
+  correctCount: 0,
+  streak: 0,
+  bestStreak: 0,
+  neighborCount: 0,
+  questionStartedAt: null,
+  lastOutcome: null,
+  errorMessage: null,
+  saved: false,
+  leaderboardRank: null,
+};
+
+async function loadNeighbors(): Promise<NeighborMap> {
+  try {
+    const res = await fetch("/data/country-neighbors.json");
+    return res.ok ? ((await res.json()) as NeighborMap) : {};
+  } catch {
+    // Without it the only loss is the consolation point; the round still works.
+    return {};
+  }
 }
 
 /** Drives a full round: fetches questions, scores guesses, and (if signed in) saves the result. */
 export function useRound(config: RoundConfig | null) {
   const { data: session } = useSession();
-  const [state, setState] = useState<RoundState>({
-    status: "loading",
-    questions: [],
-    currentIndex: 0,
-    outcomes: [],
-    totalScore: 0,
-    correctCount: 0,
-    lastOutcome: null,
-    errorMessage: null,
-    saved: false,
-  });
+  const [state, setState] = useState<RoundState>(INITIAL_STATE);
 
-  const questionStartedAt = useRef<number>(0);
+  const neighbors = useRef<NeighborMap>({});
 
   useEffect(() => {
     if (!config) return;
     let cancelled = false;
 
-    fetch("/api/rounds/start", {
+    const questions = fetch("/api/rounds/start", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(config),
-    })
-      .then(async (res) => {
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          throw new Error(data.error ?? "Could not start round");
-        }
-        return res.json();
-      })
-      .then((data: { questions: RoundQuestion[] }) => {
+    }).then(async (res) => {
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error ?? "Could not start round");
+      }
+      return (await res.json()) as { questions: RoundQuestion[] };
+    });
+
+    Promise.all([questions, loadNeighbors()])
+      .then(([data, neighborMap]) => {
         if (cancelled) return;
-        questionStartedAt.current = Date.now();
-        setState((s) => ({
-          ...s,
+        neighbors.current = neighborMap;
+        setState({
+          ...INITIAL_STATE,
           status: "playing",
           questions: data.questions,
-          currentIndex: 0,
-          outcomes: [],
-          totalScore: 0,
-          correctCount: 0,
-          lastOutcome: null,
-          saved: false,
-        }));
+          questionStartedAt: Date.now(),
+        });
       })
       .catch((error: Error) => {
         if (cancelled) return;
@@ -83,23 +107,27 @@ export function useRound(config: RoundConfig | null) {
   const submitGuess = useCallback(
     (guessedCode: string | null) => {
       setState((s) => {
-        if (s.status !== "playing") return s;
+        if (s.status !== "playing" || !config) return s;
         const target = s.questions[s.currentIndex];
-        const elapsedMs = Date.now() - questionStartedAt.current;
+        const elapsedMs = Date.now() - (s.questionStartedAt ?? Date.now());
         const correct = guessedCode !== null && guessedCode === target.code;
-        // Streaks and neighbor bonuses are wired in by later commits.
-        const score = scoreAnswer({
-          difficulty: config!.difficulty,
+        const neighbor = !correct && isNeighbor(neighbors.current, guessedCode, target.code);
+        const streak = correct ? s.streak + 1 : 0;
+        const breakdown = scoreAnswer({
+          difficulty: config.difficulty,
           correct,
-          neighbor: false,
+          neighbor,
           elapsedMs,
-          streak: correct ? 1 : 0,
-        }).total;
+          streak,
+        });
         const outcome: QuestionOutcome = {
           code: target.code,
           guessedCode,
           correct,
-          score,
+          neighbor,
+          streak,
+          score: breakdown.total,
+          breakdown,
           elapsedMs,
         };
 
@@ -107,8 +135,11 @@ export function useRound(config: RoundConfig | null) {
           ...s,
           status: "revealing",
           outcomes: [...s.outcomes, outcome],
-          totalScore: s.totalScore + score,
+          totalScore: s.totalScore + breakdown.total,
           correctCount: s.correctCount + (correct ? 1 : 0),
+          streak,
+          bestStreak: Math.max(s.bestStreak, streak),
+          neighborCount: s.neighborCount + (neighbor ? 1 : 0),
           lastOutcome: outcome,
         };
       });
@@ -124,10 +155,15 @@ export function useRound(config: RoundConfig | null) {
       if (s.status !== "revealing") return s;
       const nextIndex = s.currentIndex + 1;
       if (nextIndex >= s.questions.length) {
-        return { ...s, status: "finished", lastOutcome: null };
+        return { ...s, status: "finished", questionStartedAt: null, lastOutcome: null };
       }
-      questionStartedAt.current = Date.now();
-      return { ...s, status: "playing", currentIndex: nextIndex, lastOutcome: null };
+      return {
+        ...s,
+        status: "playing",
+        currentIndex: nextIndex,
+        questionStartedAt: Date.now(),
+        lastOutcome: null,
+      };
     });
   }, []);
 
@@ -144,15 +180,30 @@ export function useRound(config: RoundConfig | null) {
         roundLength: config.roundLength,
         score: state.totalScore,
         correct: state.correctCount,
+        totalTimeMs: totalTimeMs(state.outcomes),
+        bestStreak: state.bestStreak,
+        neighborCount: state.neighborCount,
       }),
     })
-      .then((res) => {
-        if (res.ok) setState((s) => ({ ...s, saved: true }));
+      .then(async (res) => {
+        if (!res.ok) return;
+        const data = (await res.json().catch(() => null)) as { leaderboardRank?: number | null } | null;
+        setState((s) => ({ ...s, saved: true, leaderboardRank: data?.leaderboardRank ?? null }));
       })
       .catch(() => {
         // Non-fatal — the player still sees their result, it just won't be on the leaderboard.
       });
-  }, [state.status, state.saved, state.totalScore, state.correctCount, config, session?.user]);
+  }, [
+    state.status,
+    state.saved,
+    state.totalScore,
+    state.correctCount,
+    state.outcomes,
+    state.bestStreak,
+    state.neighborCount,
+    config,
+    session?.user,
+  ]);
 
   return { state, submitGuess, advance };
 }

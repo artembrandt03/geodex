@@ -11,6 +11,7 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:studio": "prisma studio",
     "generate:country-codes": "node scripts/generate-country-codes.mjs",
+    "generate:country-neighbors": "node scripts/generate-country-neighbors.mjs",
     "test": "vitest run"
   },
   "prisma": {

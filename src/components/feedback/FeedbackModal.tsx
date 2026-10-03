@@ -251,7 +251,6 @@ function FeedbackForm({ onClose }: { onClose: () => void }) {
           maxLength={SUBJECT_MAX}
           required
           minLength={3}
-          placeholder={kind === "BUG" ? "What went wrong?" : "What's on your mind?"}
           className={fieldClass}
         />
         <span className="self-end text-xs text-muted-2">
@@ -272,11 +271,6 @@ function FeedbackForm({ onClose }: { onClose: () => void }) {
           required
           minLength={10}
           rows={6}
-          placeholder={
-            kind === "BUG"
-              ? "What did you expect, what happened instead, and how can we make it happen again?"
-              : "Tell us anything: what you like, what you'd change, what you'd love to see."
-          }
           className={`${fieldClass} resize-y`}
         />
         <span className="self-end text-xs text-muted-2">

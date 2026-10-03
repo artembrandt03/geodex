@@ -33,6 +33,35 @@ export function NavBar() {
           merely between two sides of different widths. */}
       <nav className="mx-auto grid max-w-5xl grid-cols-[1fr_auto_1fr] items-center px-4 py-3">
         <div className="flex items-center gap-5 justify-self-start">
+          {/* Back to the cosmos title screen ("/"). The tooltip is plain CSS
+              (hover or keyboard focus) so it needs no state; it drops below
+              the arrow because the nav sits at the very top of the page. */}
+          <Link
+            href="/"
+            onClick={goTo("/")}
+            aria-label="Back to title screen"
+            className="group relative -mr-2 flex h-8 w-8 items-center justify-center rounded-full border border-border-strong text-muted transition-colors hover:bg-surface-2 hover:text-foreground"
+          >
+            <svg
+              viewBox="0 0 20 20"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2.2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden
+              className="h-4 w-4 transition-transform group-hover:-translate-x-0.5"
+            >
+              <path d="M12 4l-6 6 6 6" />
+            </svg>
+            <span
+              role="tooltip"
+              className="pointer-events-none absolute left-0 top-full z-30 mt-2 whitespace-nowrap rounded-md border border-border-strong bg-surface px-2.5 py-1 text-xs font-medium text-foreground opacity-0 shadow-lg transition-opacity delay-150 group-hover:opacity-100 group-focus-visible:opacity-100"
+            >
+              Back to title screen
+            </span>
+          </Link>
+
           <Link
             href="/setup"
             onClick={goTo("/setup")}

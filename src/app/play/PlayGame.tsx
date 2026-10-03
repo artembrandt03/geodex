@@ -9,6 +9,7 @@ import { useBackdropExit, useSharedGameMap } from "@/components/providers/Shared
 import { useRoundGuard } from "@/components/providers/RoundGuardProvider";
 import type { WorldMapProps } from "@/components/game/WorldMap";
 import { RoundStopwatch } from "@/components/game/RoundStopwatch";
+import { StreakBadge } from "@/components/game/StreakBadge";
 import { useRound } from "@/lib/game/useRound";
 import { normalizeAnswer } from "@/lib/game/normalizeAnswer";
 import { ROUND_LENGTHS } from "@/lib/game/types";
@@ -252,6 +253,7 @@ function ActiveRound({
     <div className="pointer-events-none relative h-full w-full">
       {/* Top overlay: progress + score */}
       <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-4 p-4">
+        <div className="flex flex-col items-start gap-3">
         <div className="pointer-events-auto flex flex-col gap-1.5 rounded-xl border border-border bg-surface/85 px-4 py-2 shadow-lg backdrop-blur-md">
           <span className="text-xs font-medium uppercase tracking-wide text-muted">
             {state.status === "finished"
@@ -271,6 +273,8 @@ function ActiveRound({
             startedAt={state.questionStartedAt}
             running={state.status === "playing"}
           />
+        </div>
+        {state.status !== "finished" && <StreakBadge streak={state.streak} />}
         </div>
 
         <div className="pointer-events-auto rounded-xl border border-border bg-surface/85 px-4 py-2 text-right shadow-lg backdrop-blur-md">

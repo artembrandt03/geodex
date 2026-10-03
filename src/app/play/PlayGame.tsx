@@ -8,6 +8,7 @@ import { animate, motion, useMotionValue } from "framer-motion";
 import { useBackdropExit, useSharedGameMap } from "@/components/providers/SharedMapProvider";
 import { useRoundGuard } from "@/components/providers/RoundGuardProvider";
 import type { WorldMapProps } from "@/components/game/WorldMap";
+import { AnswerBanner } from "@/components/game/AnswerBanner";
 import { RoundStopwatch } from "@/components/game/RoundStopwatch";
 import { StreakBadge } from "@/components/game/StreakBadge";
 import { useRound } from "@/lib/game/useRound";
@@ -351,31 +352,7 @@ function ActiveRound({
             transition={{ type: "spring", stiffness: 380, damping: 20 }}
             className="pointer-events-auto flex flex-col items-center gap-3"
           >
-            <div
-              className={`flex items-center gap-3 rounded-lg border-2 bg-surface/90 px-5 py-2.5 shadow-xl backdrop-blur-md ${
-                state.lastOutcome.correct ? "border-success text-success" : "border-danger text-danger"
-              }`}
-            >
-              <span
-                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 ${
-                  state.lastOutcome.correct ? "border-success" : "border-danger"
-                }`}
-              >
-                {state.lastOutcome.correct ? <CheckMark /> : <CrossMark />}
-              </span>
-              <span className="font-display font-semibold">
-                {state.lastOutcome.correct ? (
-                  `Correct! +${state.lastOutcome.score} points`
-                ) : guessedName ? (
-                  <>
-                    Not quite, that&apos;s{" "}
-                    <strong className="underline decoration-2 underline-offset-2">{guessedName}</strong>
-                  </>
-                ) : (
-                  "Not quite!"
-                )}
-              </span>
-            </div>
+            <AnswerBanner outcome={state.lastOutcome} guessedName={guessedName} />
 
             <motion.button
               type="button"
@@ -443,22 +420,6 @@ function ZoomButton({ label, onClick }: { label: string; onClick: () => void }) 
       <Image src="/images/loupe.png" alt="" width={16} height={16} unoptimized />
       <span className="text-xs font-medium text-foreground">{label}</span>
     </motion.button>
-  );
-}
-
-function CheckMark() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth={2.5}>
-      <path d="M4 10.5l4 4 8-9" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function CrossMark() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth={2.5}>
-      <path d="M5 5l10 10M15 5L5 15" strokeLinecap="round" />
-    </svg>
   );
 }
 

@@ -2,7 +2,12 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getLeaderboard } from "@/lib/leaderboard";
+import { SCORING_VERSION } from "@/lib/game/scoring";
 import { ROUND_LENGTHS } from "@/lib/game/types";
+
+// A round can't take longer than a day; guards against garbage, not cheating.
+const MAX_ROUND_MS = 24 * 60 * 60 * 1000;
 
 const completeRoundSchema = z.object({
   mode: z.enum(["NAME", "SHAPE"]),
@@ -13,11 +18,16 @@ const completeRoundSchema = z.object({
     .refine((n) => (ROUND_LENGTHS as readonly number[]).includes(n)),
   score: z.number().int().min(0),
   correct: z.number().int().min(0),
+  totalTimeMs: z.number().int().min(0).max(MAX_ROUND_MS),
+  bestStreak: z.number().int().min(0),
+  neighborCount: z.number().int().min(0),
 });
 
 /**
- * Persists a finished round for the signed-in user. Guests never call this
- * — their results simply aren't saved, per the guest-play spec.
+ * Persists a finished round for the signed-in user and reports where it
+ * placed on the leaderboard (`leaderboardRank`, 1-based, or null). Guests
+ * never call this -- their results simply aren't saved, per the guest-play
+ * spec.
  */
 export async function POST(request: Request) {
   const session = await auth();
@@ -34,10 +44,11 @@ export async function POST(request: Request) {
     );
   }
 
-  const { mode, difficulty, roundLength, score, correct } = parsed.data;
+  const { mode, difficulty, roundLength, score, correct, totalTimeMs, bestStreak, neighborCount } =
+    parsed.data;
 
-  if (correct > roundLength) {
-    return NextResponse.json({ error: "correct exceeds roundLength" }, { status: 400 });
+  if (correct > roundLength || bestStreak > correct || neighborCount > roundLength - correct) {
+    return NextResponse.json({ error: "Inconsistent round totals" }, { status: 400 });
   }
 
   const gameResult = await prisma.gameResult.create({
@@ -48,8 +59,20 @@ export async function POST(request: Request) {
       roundLength,
       score,
       correct,
+      totalTimeMs,
+      bestStreak,
+      neighborCount,
+      scoringVersion: SCORING_VERSION,
     },
   });
 
-  return NextResponse.json({ gameResult }, { status: 201 });
+  // On the board only if THIS round is the player's entry in the top N (their
+  // best run), not merely because an older run of theirs already was.
+  const board = await getLeaderboard({ mode, difficulty, roundLength });
+  const index = board.findIndex((entry) => entry.id === gameResult.id);
+
+  return NextResponse.json(
+    { gameResult, leaderboardRank: index === -1 ? null : index + 1 },
+    { status: 201 },
+  );
 }

@@ -32,7 +32,7 @@ export function NavBar() {
       {/* Three equal-weight columns so the middle link is truly centered, not
           merely between two sides of different widths. */}
       <nav className="mx-auto grid max-w-5xl grid-cols-[1fr_auto_1fr] items-center px-4 py-3">
-        <div className="flex items-center gap-5 justify-self-start">
+        <div className="flex items-center justify-self-start gap-2 sm:gap-5">
           {/* Back to the cosmos title screen ("/"). The tooltip is plain CSS
               (hover or keyboard focus) so it needs no state; it drops below
               the arrow because the nav sits at the very top of the page. */}
@@ -40,7 +40,7 @@ export function NavBar() {
             href="/"
             onClick={goTo("/")}
             aria-label="Back to title screen"
-            className="group relative -mr-2 flex h-8 w-8 items-center justify-center rounded-full border border-border-strong text-muted transition-colors hover:bg-surface-2 hover:text-foreground"
+            className="group relative -mr-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border-strong text-muted transition-colors hover:bg-surface-2 hover:text-foreground"
           >
             <svg
               viewBox="0 0 20 20"
@@ -65,7 +65,7 @@ export function NavBar() {
           <Link
             href="/setup"
             onClick={goTo("/setup")}
-            className="flex items-center gap-2 font-display text-lg font-bold tracking-tight"
+            className="flex shrink-0 items-center gap-2 font-display text-lg font-bold tracking-tight"
           >
             <motion.span
               whileHover={{ rotate: 15, scale: 1.1 }}
@@ -74,13 +74,14 @@ export function NavBar() {
             >
               <Image src="/images/earth.png" alt="" width={24} height={24} />
             </motion.span>
-            Geodex
+            {/* Wordmark hidden on phones so the Leaderboard sign keeps its width. */}
+            <span className="hidden sm:inline">Geodex</span>
           </Link>
 
           <Link
             href="/about"
             onClick={goTo("/about")}
-            className={`font-display text-base font-semibold tracking-tight transition-colors hover:text-foreground ${
+            className={`shrink-0 font-display text-base font-semibold tracking-tight transition-colors hover:text-foreground ${
               pathname === "/about" ? "text-foreground" : "text-muted"
             }`}
           >
@@ -101,7 +102,7 @@ export function NavBar() {
           </Link>
         </div>
 
-        <div className="flex items-center gap-5 justify-self-end text-sm">
+        <div className="flex items-center gap-2 justify-self-end text-sm sm:gap-5">
           {status === "loading" ? null : session?.user ? (
             <div className="flex items-center gap-3">
               {/* The name is the way to the profile page, so it's styled as a
@@ -111,7 +112,7 @@ export function NavBar() {
                 href="/profile"
                 onClick={goTo("/profile")}
                 aria-label={`${session.user.name}, view your profile`}
-                className={`group relative flex items-center gap-2 rounded-full border border-border-strong py-1 pl-1 pr-3 transition-all hover:-translate-y-0.5 hover:bg-surface-2 hover:shadow-md ${
+                className={`group relative flex items-center gap-2 rounded-full border border-border-strong py-1 pl-1 pr-2.5 transition-all sm:pr-3 hover:-translate-y-0.5 hover:bg-surface-2 hover:shadow-md ${
                   pathname === "/profile" ? "bg-surface-2 text-foreground" : "text-muted hover:text-foreground"
                 }`}
               >
@@ -125,7 +126,8 @@ export function NavBar() {
                     className="object-contain p-0.5"
                   />
                 </span>
-                <span className="max-w-32 truncate font-medium">{session.user.name}</span>
+                {/* Avatar only on phones: the header can't fit a name too. */}
+                <span className="hidden max-w-32 truncate font-medium sm:inline">{session.user.name}</span>
                 <svg
                   viewBox="0 0 20 20"
                   fill="none"
@@ -149,7 +151,7 @@ export function NavBar() {
                 whileHover={{ scale: 1.04 }}
                 whileTap={{ scale: 0.96 }}
                 onClick={() => guardedAction(() => signOut({ callbackUrl: "/" }))}
-                className="rounded-lg border border-border-strong px-3 py-1.5 transition-colors hover:bg-surface-2"
+                className="whitespace-nowrap rounded-lg border border-border-strong px-3 py-1.5 transition-colors hover:bg-surface-2"
               >
                 Sign out
               </motion.button>

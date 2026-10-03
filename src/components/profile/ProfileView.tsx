@@ -34,7 +34,7 @@ export function ProfileView() {
             <p className="text-danger">{profile.message}</p>
           </Notice>
         ) : (
-          <div className="grid w-full max-w-6xl gap-6 xl:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] xl:items-start">
+          <div className="grid w-full max-w-6xl grid-cols-[minmax(0,1fr)] gap-6 xl:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] xl:items-start">
             <div className="flex flex-col gap-6">
               <ProfileCard user={profile.user} />
               <ChangePasswordWindow />

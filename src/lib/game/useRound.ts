@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
-import { scoreGuess } from "./scoring";
+import { scoreAnswer } from "./scoring";
 import type { QuestionOutcome, RoundConfig, RoundQuestion } from "./types";
 
 export type RoundStatus = "loading" | "playing" | "revealing" | "finished" | "error";
@@ -87,7 +87,14 @@ export function useRound(config: RoundConfig | null) {
         const target = s.questions[s.currentIndex];
         const elapsedMs = Date.now() - questionStartedAt.current;
         const correct = guessedCode !== null && guessedCode === target.code;
-        const score = scoreGuess(correct, elapsedMs);
+        // Streaks and neighbor bonuses are wired in by later commits.
+        const score = scoreAnswer({
+          difficulty: config!.difficulty,
+          correct,
+          neighbor: false,
+          elapsedMs,
+          streak: correct ? 1 : 0,
+        }).total;
         const outcome: QuestionOutcome = {
           code: target.code,
           guessedCode,
@@ -106,7 +113,7 @@ export function useRound(config: RoundConfig | null) {
         };
       });
     },
-    [],
+    [config],
   );
 
   // Advance to the next question (or finish) once the player is done

@@ -19,6 +19,9 @@
   --primary-foreground: #fbf3dd;
   --accent: #c99a3f;
   --accent-strong: #b3822c;
+  --medal-gold: #d9a520;
+  --medal-silver: #a7adb4;
+  --medal-bronze: #b8703a;
   --success: #3f6b3f;
   --warning: #b8860b;
   --danger: #8b3a3a;
@@ -235,6 +238,60 @@ input[type="radio"],
 
 .geo-incorrect-pulse {
   animation: geo-pulse-incorrect 1.2s ease-in-out infinite;
+}
+
+/* Leaderboard podium rows: a medal-colored wash fading left to right, plus
+   a glint that sweeps across now and then. The glint is a second, oversized
+   gradient layer whose background-position is animated (the sweep itself is
+   only the middle stretch of the keyframes, so most of each cycle is a
+   still pause between glints). */
+.lb-gold {
+  --medal: var(--medal-gold);
+  --glint-duration: 4.5s;
+}
+.lb-silver {
+  --medal: var(--medal-silver);
+  --glint-duration: 6s;
+}
+.lb-bronze {
+  --medal: var(--medal-bronze);
+  --glint-duration: 7.5s;
+}
+
+.lb-medal {
+  background-image:
+    linear-gradient(110deg, transparent 35%, rgba(255, 252, 235, 0.6) 50%, transparent 65%),
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--medal) 34%, transparent),
+      color-mix(in srgb, var(--medal) 6%, transparent)
+    );
+  background-size: 250% 100%, 100% 100%;
+  background-repeat: no-repeat;
+  background-position: 200% 0, 0 0;
+  animation: lb-glint var(--glint-duration, 5s) ease-in-out infinite;
+}
+
+.lb-medal > td:first-child {
+  box-shadow: inset 4px 0 0 var(--medal);
+}
+
+@keyframes lb-glint {
+  0%,
+  45% {
+    background-position: 200% 0, 0 0;
+  }
+  100% {
+    background-position: -100% 0, 0 0;
+  }
+}
+
+/* Keep the medal colors, drop the motion. */
+@media (prefers-reduced-motion: reduce) {
+  .lb-medal {
+    animation: none;
+    background-position: 200% 0, 0 0;
+  }
 }
 
 /* Score ticking up */

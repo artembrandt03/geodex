@@ -3,6 +3,9 @@ import type { Difficulty, GameMode } from "@/generated/prisma/client";
 export const ROUND_LENGTHS = [5, 10, 15, 20] as const;
 export type RoundLength = (typeof ROUND_LENGTHS)[number];
 
+/** How many ranked rows a leaderboard shows (the page pads unfilled ones). */
+export const LEADERBOARD_SIZE = 5;
+
 export interface RoundConfig {
   mode: GameMode;
   difficulty: Difficulty;

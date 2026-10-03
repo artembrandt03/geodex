@@ -138,7 +138,7 @@ export default function LeaderboardPage() {
             <table className="w-full text-left">
               <thead>
                 <tr className="border-b border-border text-xs uppercase tracking-wide text-muted">
-                  <th className="w-16 px-4 py-3 font-medium">#</th>
+                  <th className="w-20 px-4 py-3 font-medium">#</th>
                   <th className="px-4 py-3 font-medium">Player</th>
                   <th className="px-4 py-3 font-medium">Score</th>
                   <th className="px-4 py-3 font-medium">Correct</th>
@@ -237,8 +237,8 @@ function RankCell({
         <Image
           src={podium.trophy}
           alt={`${podium.label} trophy`}
-          width={32}
-          height={29}
+          width={44}
+          height={40}
           unoptimized
           className={filled ? "drop-shadow" : "opacity-35 grayscale"}
         />

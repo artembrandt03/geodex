@@ -3,16 +3,18 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import {
+  FEEDBACK_LIMIT_PER_HOUR,
   MAX_ATTACHMENTS,
   MAX_ATTACHMENT_BYTES,
   MAX_TOTAL_ATTACHMENT_BYTES,
   detectImageType,
   feedbackFieldsSchema,
+  rateLimitMessage,
+  type FeedbackLimitStatus,
   type ImageType,
 } from "@/lib/feedback";
 import { getMailConfig, sendFeedbackEmail } from "@/lib/feedbackEmail";
 
-const RATE_LIMIT_PER_HOUR = 2;
 const HOUR_MS = 60 * 60 * 1000;
 // A hair over the attachment cap, to cover the multipart framing + text fields.
 const MAX_REQUEST_BYTES = MAX_TOTAL_ATTACHMENT_BYTES + 256 * 1024;
@@ -36,6 +38,37 @@ function hashIp(ip: string): string {
   return createHmac("sha256", process.env.AUTH_SECRET ?? "geodex-feedback")
     .update(ip)
     .digest("hex");
+}
+
+/**
+ * How many reports this sender may still send, and if none, how long until
+ * the oldest one in the rolling hour ages out. A sender with no detectable
+ * IP (plain local dev) is never limited.
+ */
+async function getLimitStatus(ipHash: string | null): Promise<FeedbackLimitStatus> {
+  const open = { limit: FEEDBACK_LIMIT_PER_HOUR, remaining: FEEDBACK_LIMIT_PER_HOUR, retryAfterMinutes: 0 };
+  if (!ipHash) return open;
+
+  const recent = await prisma.feedback.findMany({
+    where: { ipHash, createdAt: { gt: new Date(Date.now() - HOUR_MS) } },
+    orderBy: { createdAt: "asc" },
+    select: { createdAt: true },
+  });
+  const remaining = Math.max(0, FEEDBACK_LIMIT_PER_HOUR - recent.length);
+  if (remaining > 0) return { ...open, remaining };
+
+  // Blocked until enough old reports expire to get back under the limit.
+  const unblockAt = recent[recent.length - FEEDBACK_LIMIT_PER_HOUR].createdAt.getTime() + HOUR_MS;
+  const retryAfterMinutes = Math.max(1, Math.ceil((unblockAt - Date.now()) / 60_000));
+  return { limit: FEEDBACK_LIMIT_PER_HOUR, remaining: 0, retryAfterMinutes };
+}
+
+/** Lets the form show the limit (or a "come back later" screen) before anyone types. */
+export async function GET(request: Request) {
+  const ip = clientIp(request);
+  return NextResponse.json(await getLimitStatus(ip ? hashIp(ip) : null), {
+    headers: { "Cache-Control": "no-store" },
+  });
 }
 
 export async function POST(request: Request) {
@@ -92,14 +125,12 @@ export async function POST(request: Request) {
 
   const ip = clientIp(request);
   const ipHash = ip ? hashIp(ip) : null;
-  // Without an IP (e.g. plain local dev) there's no sender to rate-limit.
-  if (ipHash) {
-    const recent = await prisma.feedback.count({
-      where: { ipHash, createdAt: { gt: new Date(Date.now() - HOUR_MS) } },
-    });
-    if (recent >= RATE_LIMIT_PER_HOUR) {
-      return fail("You've been rate limited. Please come back in an hour.", 429);
-    }
+  const limit = await getLimitStatus(ipHash);
+  if (limit.remaining === 0) {
+    return NextResponse.json(
+      { error: rateLimitMessage(limit.retryAfterMinutes), retryAfterMinutes: limit.retryAfterMinutes },
+      { status: 429, headers: { "Retry-After": String(limit.retryAfterMinutes * 60) } },
+    );
   }
 
   const session = await auth();

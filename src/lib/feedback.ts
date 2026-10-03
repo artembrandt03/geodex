@@ -6,6 +6,25 @@ import { z } from "zod";
 export const MAX_ATTACHMENTS = 3;
 export const MAX_ATTACHMENT_BYTES = 2 * 1024 * 1024;
 export const MAX_TOTAL_ATTACHMENT_BYTES = 4.5 * 1024 * 1024;
+// Per client, per rolling hour. Shared so the form can state it up front.
+export const FEEDBACK_LIMIT_PER_HOUR = 2;
+
+/** What GET /api/feedback tells the form before the user starts typing. */
+export interface FeedbackLimitStatus {
+  limit: number;
+  remaining: number;
+  /** Whole minutes until another report is allowed; 0 when not blocked. */
+  retryAfterMinutes: number;
+}
+
+export function formatMinutes(minutes: number): string {
+  return minutes <= 1 ? "about a minute" : `about ${minutes} minutes`;
+}
+
+export function rateLimitMessage(retryAfterMinutes: number): string {
+  return `You can send up to ${FEEDBACK_LIMIT_PER_HOUR} reports per hour, and you've used them all. Please come back in ${formatMinutes(retryAfterMinutes)}.`;
+}
+
 export const SUBJECT_MAX = 120;
 export const DESCRIPTION_MAX = 4000;
 

@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Image from "next/image";
+import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { LEADERBOARD_SIZE, ROUND_LENGTHS } from "@/lib/game/types";
 
@@ -36,11 +37,29 @@ const selectClass =
 
 const RANKS = Array.from({ length: LEADERBOARD_SIZE }, (_, i) => i + 1);
 
+// useSearchParams needs a Suspense boundary for the page to prerender.
 export default function LeaderboardPage() {
-  const [mode, setMode] = useState<(typeof MODES)[number]["value"]>("NAME");
-  const [difficulty, setDifficulty] =
-    useState<(typeof DIFFICULTIES)[number]["value"]>("EASY");
-  const [roundLength, setRoundLength] = useState<number>(10);
+  return (
+    <Suspense>
+      <Leaderboard />
+    </Suspense>
+  );
+}
+
+function Leaderboard() {
+  // The results screen links here with the round's mode/difficulty/length so a
+  // player lands on the board they just played; anything invalid or missing
+  // falls back to the usual defaults.
+  const params = useSearchParams();
+  const [mode, setMode] = useState<(typeof MODES)[number]["value"]>(
+    MODES.find((m) => m.value === params.get("mode"))?.value ?? "NAME",
+  );
+  const [difficulty, setDifficulty] = useState<(typeof DIFFICULTIES)[number]["value"]>(
+    DIFFICULTIES.find((d) => d.value === params.get("difficulty"))?.value ?? "EASY",
+  );
+  const [roundLength, setRoundLength] = useState<number>(
+    ROUND_LENGTHS.find((n) => n === Number(params.get("roundLength"))) ?? 10,
+  );
 
   // Tagged with the filters it was fetched for, so a result that doesn't
   // match the current selection is treated as "still loading" (skeleton rows)

@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { FeedbackModal } from "@/components/feedback/FeedbackModal";
 import { LATEST_UPDATE } from "@/lib/updates";
 
 /** Shared look for the small windows beside the setup panel. */
@@ -21,6 +23,7 @@ export function SetupSideWindows() {
       className="mt-6 grid gap-4 md:grid-cols-2 2xl:absolute 2xl:left-full 2xl:top-0 2xl:ml-6 2xl:mt-0 2xl:w-[min(32rem,calc(50vw_-_27rem))] 2xl:grid-cols-1"
     >
       <NewsTeaser />
+      <FeedbackTeaser />
     </aside>
   );
 }
@@ -52,5 +55,43 @@ function NewsTeaser() {
         </p>
       </Link>
     </motion.div>
+  );
+}
+
+/** Opens the bug report / feedback form in a popup right over the title screen. */
+function FeedbackTeaser() {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        whileHover={{ y: -3 }}
+        transition={{ duration: 0.5, ease: "easeOut", delay: 0.25 }}
+      >
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          aria-haspopup="dialog"
+          className={`${windowClass} w-full`}
+        >
+          <p className="font-display text-xs font-semibold uppercase tracking-wide text-muted">
+            Bug reports &amp; feedback
+          </p>
+          <p className="mt-3 font-display text-lg font-semibold leading-snug">
+            Tell us what you think
+          </p>
+          <p className="mt-1.5 text-sm leading-relaxed text-muted">
+            Found a bug, or have a thought about anything at all? Send it our way.
+          </p>
+          <p className="mt-3 flex items-center gap-1.5 text-xs font-medium text-primary-hover transition-transform group-hover:translate-x-0.5">
+            Send a report
+            <span aria-hidden>↗</span>
+          </p>
+        </button>
+      </motion.div>
+      <FeedbackModal open={open} onClose={() => setOpen(false)} />
+    </>
   );
 }

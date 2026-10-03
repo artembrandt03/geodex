@@ -29,8 +29,10 @@ export function NavBar() {
 
   return (
     <header className="pointer-events-auto relative z-20 border-b border-border bg-surface/70 backdrop-blur-md">
-      <nav className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
-        <div className="flex items-center gap-5">
+      {/* Three equal-weight columns so the middle link is truly centered, not
+          merely between two sides of different widths. */}
+      <nav className="mx-auto grid max-w-5xl grid-cols-[1fr_auto_1fr] items-center px-4 py-3">
+        <div className="flex items-center gap-5 justify-self-start">
           <Link
             href="/setup"
             onClick={goTo("/setup")}
@@ -45,7 +47,9 @@ export function NavBar() {
             </motion.span>
             Geodex
           </Link>
+        </div>
 
+        <div className="justify-self-center">
           <Link
             href="/leaderboard"
             onClick={goTo("/leaderboard")}
@@ -58,7 +62,7 @@ export function NavBar() {
           </Link>
         </div>
 
-        <div className="flex items-center gap-5 text-sm">
+        <div className="flex items-center gap-5 justify-self-end text-sm">
           {status === "loading" ? null : session?.user ? (
             <div className="flex items-center gap-3">
               <span className="text-muted">{session.user.name}</span>

@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { AboutMeWindow } from "@/components/about/AboutMeWindow";
 import { ProjectWindow } from "@/components/about/ProjectWindow";
 import { NewsWindow } from "@/components/about/NewsWindow";
-import { AttributionsWindow } from "@/components/about/AttributionsWindow";
 
 export const metadata: Metadata = {
   title: "About | Geodex",
@@ -10,10 +9,9 @@ export const metadata: Metadata = {
 
 /*
  * Wide screens (xl+): three columns -- About me on the left, the project in
- * the middle (given the most room), News and Attributions stacked on the
- * right. Below that it falls back to a single column, with the two small
- * windows side by side once there's room (md). DOM order is the mobile
- * reading order: me, project, news, attributions.
+ * the middle (given the most room), News on the right. Below that it falls
+ * back to a single column. DOM order is the mobile reading order: me,
+ * project, news.
  */
 export default async function AboutPage({
   searchParams,
@@ -30,10 +28,7 @@ export default async function AboutPage({
         <div className="grid w-full max-w-[1800px] gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)_minmax(0,1fr)] xl:items-start">
           <AboutMeWindow />
           <ProjectWindow />
-          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-1">
-            <NewsWindow initialOpen={updates === "open"} />
-            <AttributionsWindow />
-          </div>
+          <NewsWindow initialOpen={updates === "open"} />
         </div>
       </div>
     </div>

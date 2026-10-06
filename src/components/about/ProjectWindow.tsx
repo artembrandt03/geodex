@@ -12,6 +12,8 @@ const FEATURES = [
   "Play as a guest, or sign up to compete on the leaderboards",
 ];
 
+const GITHUB_URL = "https://github.com/artembrandt03/geodex/tree/main";
+
 const HOW_TO_PLAY = [
   "Pick a mode, a difficulty and a round length.",
   "Guess the country. You get one attempt each, and there's no time limit.",
@@ -19,18 +21,6 @@ const HOW_TO_PLAY = [
   "Answer quickly for a speed bonus: within 5 seconds doubles the base points, within 10 seconds adds half and within 15 adds a quarter.",
   "Get three in a row right to start a streak bonus, which grows with every further correct answer.",
   "A wrong answer scores 0, unless you picked a country that borders the right one. That earns 1 point.",
-];
-
-const BUILT_WITH = [
-  "Next.js",
-  "React",
-  "TypeScript",
-  "Tailwind CSS",
-  "PostgreSQL",
-  "Prisma",
-  "react-simple-maps",
-  "D3",
-  "Framer Motion",
 ];
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
@@ -92,17 +82,20 @@ export function ProjectWindow() {
         </div>
       </div>
 
-      <Section title="Built with">
-        <ul className="flex flex-wrap gap-2">
-          {BUILT_WITH.map((tech) => (
-            <li
-              key={tech}
-              className="rounded-full border border-border-strong bg-surface/70 px-3 py-1 text-sm"
-            >
-              {tech}
-            </li>
-          ))}
-        </ul>
+      <Section title="Source code">
+        <p className="leading-relaxed">
+          Curious how Geodex was built? The whole project is open on GitHub, from the map and the
+          scoring to this very page. Come take a look.
+        </p>
+        <a
+          href={GITHUB_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex w-fit items-center gap-2 rounded-lg bg-primary px-4 py-2.5 font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-transform hover:scale-[1.03] active:scale-[0.98]"
+        >
+          View on GitHub
+          <span aria-hidden>↗</span>
+        </a>
       </Section>
     </AboutWindow>
   );

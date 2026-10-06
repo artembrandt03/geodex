@@ -406,7 +406,7 @@ function ActiveRound({
             <AnswerBanner
               outcome={state.lastOutcome}
               guessedName={guessedName}
-              answerName={current.name}
+              answerName={config.mode === "SHAPE" ? current.name : null}
             />
 
             <motion.button

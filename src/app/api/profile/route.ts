@@ -3,8 +3,7 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { SCORING_VERSION } from "@/lib/game/scoring";
-import { computeStats } from "@/lib/profile/stats";
+import { getUserStats } from "@/lib/profile/data";
 import { displayNameSchema } from "@/lib/profile/displayName";
 
 /** The signed-in player's account details and lifetime stats (current scoring rules only). */
@@ -14,24 +13,12 @@ export async function GET() {
     return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   }
 
-  const [user, rounds] = await Promise.all([
+  const [user, stats] = await Promise.all([
     prisma.user.findUnique({
       where: { id: session.user.id },
       select: { displayName: true, email: true, createdAt: true },
     }),
-    prisma.gameResult.findMany({
-      where: { userId: session.user.id, scoringVersion: SCORING_VERSION },
-      select: {
-        mode: true,
-        difficulty: true,
-        roundLength: true,
-        score: true,
-        correct: true,
-        totalTimeMs: true,
-        bestStreak: true,
-        neighborCount: true,
-      },
-    }),
+    getUserStats(session.user.id),
   ]);
 
   if (!user) {
@@ -39,7 +26,7 @@ export async function GET() {
   }
 
   return NextResponse.json(
-    { user, stats: computeStats(rounds) },
+    { user, stats },
     { headers: { "Cache-Control": "no-store" } },
   );
 }

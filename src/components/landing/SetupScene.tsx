@@ -196,9 +196,11 @@ export function SetupScene() {
 
   return (
     <div className="relative h-full w-full overflow-hidden">
-      <div className="relative z-10 flex h-full items-center justify-center overflow-y-auto px-4 py-10">
+      <div className="relative z-10 flex h-full justify-center overflow-y-auto px-4 py-10">
+        {/* No items-center on the scroller: centering an overflowing flex child clips its top
+            out of reach. my-auto centers it when there's room and pins it to the top when there isn't. */}
         {/* Exactly as wide as the panel, so SetupSideWindows can hang off its right edge. */}
-        <div className="relative w-full max-w-3xl">
+        <div className="relative my-auto w-full max-w-3xl">
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}

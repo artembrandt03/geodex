@@ -1,13 +1,19 @@
 import { PointChips } from "./PointChips";
 import type { QuestionOutcome } from "@/lib/game/types";
 
-/** The stamp shown after each guess: right or wrong, what was guessed, and the points it earned. */
+/**
+ * The stamp shown after each guess: right or wrong, what was guessed, the
+ * points it earned, and always the name of the right country (in shape mode
+ * nothing else on screen says what the highlighted country was).
+ */
 export function AnswerBanner({
   outcome,
   guessedName,
+  answerName,
 }: {
   outcome: QuestionOutcome;
   guessedName: string | null;
+  answerName: string;
 }) {
   const color = outcome.correct ? "var(--success)" : "var(--danger)";
 
@@ -27,7 +33,8 @@ export function AnswerBanner({
         <span className="font-display text-lg font-semibold">
           {outcome.correct ? (
             <>
-              Correct! <span className="tabular-nums">+{outcome.score}</span>
+              Correct! It&apos;s <strong>{answerName}</strong>{" "}
+              <span className="tabular-nums">+{outcome.score}</span>
             </>
           ) : guessedName ? (
             <>
@@ -39,6 +46,11 @@ export function AnswerBanner({
           )}
         </span>
       </div>
+      {!outcome.correct && (
+        <p className="font-display text-base font-semibold text-foreground">
+          The answer was <strong className="text-success">{answerName}</strong>
+        </p>
+      )}
       <PointChips outcome={outcome} />
     </div>
   );

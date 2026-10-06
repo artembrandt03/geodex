@@ -373,7 +373,11 @@ function ActiveRound({
             transition={{ type: "spring", stiffness: 380, damping: 20 }}
             className="pointer-events-auto flex flex-col items-center gap-3"
           >
-            <AnswerBanner outcome={state.lastOutcome} guessedName={guessedName} />
+            <AnswerBanner
+              outcome={state.lastOutcome}
+              guessedName={guessedName}
+              answerName={current.name}
+            />
 
             <motion.button
               type="button"

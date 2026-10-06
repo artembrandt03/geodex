@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 import { AboutWindow } from "@/components/about/AboutWindow";
 import { ChangeDisplayNameModal } from "./ChangeDisplayNameModal";
 import { ChangePasswordModal } from "./ChangePasswordModal";
+import { DeleteAccountModal } from "./DeleteAccountModal";
 import type { ProfileUser } from "./useProfile";
 
 const memberSince = new Intl.DateTimeFormat("en", { month: "long", year: "numeric" });
@@ -15,6 +16,7 @@ export function ProfileCard({ user, onChanged }: { user: ProfileUser; onChanged:
   const { update } = useSession();
   const [passwordOpen, setPasswordOpen] = useState(false);
   const [nameOpen, setNameOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   return (
     <AboutWindow title="Your profile">
@@ -48,6 +50,19 @@ export function ProfileCard({ user, onChanged }: { user: ProfileUser; onChanged:
         <Detail label="Member since" value={memberSince.format(new Date(user.createdAt))} />
       </dl>
 
+      <div className="flex items-center justify-between gap-3 border-t border-border pt-4 text-sm">
+        <span className="text-muted">Done with Geodex?</span>
+        <button
+          type="button"
+          onClick={() => setDeleteOpen(true)}
+          // Inline: globals.css's unlayered `* { border-color }` beats border-<color> classes.
+          style={{ borderColor: "var(--danger)" }}
+          className="rounded-md border px-3 py-1.5 text-xs font-semibold text-danger transition-colors hover:bg-danger/10"
+        >
+          Delete account
+        </button>
+      </div>
+
       <ChangeDisplayNameModal
         open={nameOpen}
         onClose={() => setNameOpen(false)}
@@ -59,6 +74,7 @@ export function ProfileCard({ user, onChanged }: { user: ProfileUser; onChanged:
         }}
       />
       <ChangePasswordModal open={passwordOpen} onClose={() => setPasswordOpen(false)} />
+      <DeleteAccountModal open={deleteOpen} onClose={() => setDeleteOpen(false)} />
     </AboutWindow>
   );
 }

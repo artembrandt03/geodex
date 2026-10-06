@@ -2,15 +2,19 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import { useSession } from "next-auth/react";
 import { AboutWindow } from "@/components/about/AboutWindow";
+import { ChangeDisplayNameModal } from "./ChangeDisplayNameModal";
 import { ChangePasswordModal } from "./ChangePasswordModal";
 import type { ProfileUser } from "./useProfile";
 
 const memberSince = new Intl.DateTimeFormat("en", { month: "long", year: "numeric" });
 
 /** Who you are: the avatar (fixed for now), display name, email and join date, plus the account actions. */
-export function ProfileCard({ user }: { user: ProfileUser }) {
+export function ProfileCard({ user, onChanged }: { user: ProfileUser; onChanged: () => void }) {
+  const { update } = useSession();
   const [passwordOpen, setPasswordOpen] = useState(false);
+  const [nameOpen, setNameOpen] = useState(false);
 
   return (
     <AboutWindow title="Your profile">
@@ -30,7 +34,11 @@ export function ProfileCard({ user }: { user: ProfileUser }) {
       </div>
 
       <dl className="flex flex-col divide-y divide-border/70 rounded-xl border border-border bg-surface-2/50 text-sm">
-        <Detail label="Display name" value={user.displayName} />
+        <Detail
+          label="Display name"
+          value={user.displayName}
+          action={{ label: "Change", onClick: () => setNameOpen(true) }}
+        />
         <Detail label="Email" value={user.email} />
         <Detail
           label="Password"
@@ -40,6 +48,16 @@ export function ProfileCard({ user }: { user: ProfileUser }) {
         <Detail label="Member since" value={memberSince.format(new Date(user.createdAt))} />
       </dl>
 
+      <ChangeDisplayNameModal
+        open={nameOpen}
+        onClose={() => setNameOpen(false)}
+        currentName={user.displayName}
+        onChanged={() => {
+          // update({}) (not update()) is what makes the server re-read the name into the
+          // session for the nav bar; with no argument it only refetches the old session.
+          void update({}).then(onChanged);
+        }}
+      />
       <ChangePasswordModal open={passwordOpen} onClose={() => setPasswordOpen(false)} />
     </AboutWindow>
   );

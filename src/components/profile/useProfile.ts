@@ -14,9 +14,10 @@ export type ProfileData =
   | { status: "error"; message: string }
   | { status: "ready"; user: ProfileUser; stats: ProfileStats };
 
-/** Loads the signed-in player's account details and lifetime stats. */
-export function useProfile(enabled: boolean): ProfileData {
+/** Loads the signed-in player's account details and lifetime stats; `refresh` reloads them. */
+export function useProfile(enabled: boolean): ProfileData & { refresh: () => void } {
   const [data, setData] = useState<ProfileData>({ status: "loading" });
+  const [version, setVersion] = useState(0);
 
   useEffect(() => {
     if (!enabled) return;
@@ -41,7 +42,7 @@ export function useProfile(enabled: boolean): ProfileData {
     return () => {
       cancelled = true;
     };
-  }, [enabled]);
+  }, [enabled, version]);
 
-  return data;
+  return { ...data, refresh: () => setVersion((v) => v + 1) };
 }

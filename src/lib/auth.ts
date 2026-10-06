@@ -36,9 +36,19 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     }),
   ],
   callbacks: {
-    jwt({ token, user }) {
+    async jwt({ token, user, trigger }) {
       if (user) {
         token.id = user.id;
+      }
+      // The client calls update() after changing its display name. The new
+      // name is re-read from the database, never taken from the client, so a
+      // session can't claim a name it doesn't own.
+      if (trigger === "update" && typeof token.id === "string") {
+        const current = await prisma.user.findUnique({
+          where: { id: token.id },
+          select: { displayName: true },
+        });
+        if (current) token.name = current.displayName;
       }
       return token;
     },

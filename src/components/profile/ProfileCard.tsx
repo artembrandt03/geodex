@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/Switch";
 import { ChangeDisplayNameModal } from "./ChangeDisplayNameModal";
 import { ChangePasswordModal } from "./ChangePasswordModal";
 import { DeleteAccountModal } from "./DeleteAccountModal";
+import { ResetStatsModal } from "./ResetStatsModal";
 import type { ProfileUser } from "./useProfile";
 
 const memberSince = new Intl.DateTimeFormat("en", { month: "long", year: "numeric" });
@@ -18,6 +19,7 @@ export function ProfileCard({ user, onChanged }: { user: ProfileUser; onChanged:
   const [passwordOpen, setPasswordOpen] = useState(false);
   const [nameOpen, setNameOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [resetOpen, setResetOpen] = useState(false);
   // Saved the moment it's flipped; rolled back (with a message) if the save fails.
   const [isPublic, setIsPublic] = useState(user.profilePublic);
   const [savingVisibility, setSavingVisibility] = useState(false);
@@ -99,6 +101,19 @@ export function ProfileCard({ user, onChanged }: { user: ProfileUser; onChanged:
       </div>
 
       <div className="flex items-center justify-between gap-3 border-t border-border pt-4 text-sm">
+        <span className="text-muted">Want a clean slate?</span>
+        <button
+          type="button"
+          onClick={() => setResetOpen(true)}
+          // Inline: globals.css's unlayered `* { border-color }` beats border-<color> classes.
+          style={{ borderColor: "var(--danger)" }}
+          className="rounded-md border px-3 py-1.5 text-xs font-semibold text-danger transition-colors hover:bg-danger/10"
+        >
+          Reset statistics
+        </button>
+      </div>
+
+      <div className="flex items-center justify-between gap-3 text-sm">
         <span className="text-muted">Done with Geodex?</span>
         <button
           type="button"
@@ -122,6 +137,7 @@ export function ProfileCard({ user, onChanged }: { user: ProfileUser; onChanged:
         }}
       />
       <ChangePasswordModal open={passwordOpen} onClose={() => setPasswordOpen(false)} />
+      <ResetStatsModal open={resetOpen} onClose={() => setResetOpen(false)} onReset={onChanged} />
       <DeleteAccountModal open={deleteOpen} onClose={() => setDeleteOpen(false)} />
     </AboutWindow>
   );

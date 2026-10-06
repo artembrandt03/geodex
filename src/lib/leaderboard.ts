@@ -27,7 +27,7 @@ export async function getLeaderboard(filters: LeaderboardFilters) {
       score: true,
       correct: true,
       createdAt: true,
-      user: { select: { displayName: true } },
+      user: { select: { displayName: true, profilePublic: true } },
     },
   });
 }

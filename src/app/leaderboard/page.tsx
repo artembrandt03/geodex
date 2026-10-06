@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { LEADERBOARD_SIZE, ROUND_LENGTHS } from "@/lib/game/types";
@@ -19,7 +20,10 @@ const DIFFICULTIES = [
 
 interface LeaderboardEntry {
   rank: number;
+  userId: string;
   displayName: string;
+  /** False when the player has hidden their profile, so the name isn't a link. */
+  profilePublic: boolean;
   score: number;
   correct: number;
   createdAt: string;
@@ -187,7 +191,17 @@ function Leaderboard() {
                           <td
                             className={`px-4 py-3 ${podium ? "font-semibold" : ""}`}
                           >
-                            {entry.displayName}
+                            {entry.profilePublic ? (
+                              <Link
+                                href={`/players/${entry.userId}`}
+                                title="View profile"
+                                className="underline-offset-4 transition-colors hover:text-primary hover:underline"
+                              >
+                                {entry.displayName}
+                              </Link>
+                            ) : (
+                              <span title="This player's profile is private">{entry.displayName}</span>
+                            )}
                           </td>
                           <td
                             className={`px-4 py-3 font-semibold text-primary ${

@@ -43,7 +43,7 @@ const dateFormat = new Intl.DateTimeFormat("en", {
 });
 
 /** The player's rounds, newest first, ten to a page (padded so the table keeps its height). */
-export function MatchHistory() {
+export function MatchHistory({ endpoint = "/api/profile/history" }: { endpoint?: string }) {
   const [page, setPage] = useState(1);
   // Tagged with the page it was fetched for, so a result that doesn't match
   // the requested page counts as "still loading" instead of flashing the
@@ -55,7 +55,7 @@ export function MatchHistory() {
 
     async function load(): Promise<HistoryPage | null> {
       try {
-        const res = await fetch(`/api/profile/history?page=${page}`, { cache: "no-store" });
+        const res = await fetch(`${endpoint}?page=${page}`, { cache: "no-store" });
         return res.ok ? ((await res.json()) as HistoryPage) : null;
       } catch {
         return null;
@@ -68,7 +68,7 @@ export function MatchHistory() {
     return () => {
       cancelled = true;
     };
-  }, [page]);
+  }, [endpoint, page]);
 
   const current = loaded?.page === page ? loaded : null;
   const failed = current !== null && current.data === null;

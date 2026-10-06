@@ -35,7 +35,10 @@ export async function GET(request: Request) {
   return NextResponse.json({
     entries: results.map((r, i) => ({
       rank: i + 1,
+      userId: r.userId,
       displayName: r.user.displayName,
+      // Lets the page link a name to that player's profile only when they allow it.
+      profilePublic: r.user.profilePublic,
       score: r.score,
       correct: r.correct,
       createdAt: r.createdAt,

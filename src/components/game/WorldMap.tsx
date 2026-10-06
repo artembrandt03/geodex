@@ -477,6 +477,12 @@ export function WorldMap({
       isFirstResetSignal.current = false;
       return;
     }
+    // A new question that already comes with a focus (shape mode zooms onto
+    // the highlighted country) must not be undone here: both effects run in
+    // the same commit, this one second, so recentering would cancel the zoom
+    // that was just started. (Only the first question was unaffected, via the
+    // skip above.)
+    if (manualFocusCode) return;
     animateViewTo(restCenter, defaultZoomRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resetSignal]);

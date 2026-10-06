@@ -190,19 +190,24 @@ input[type="radio"],
   fill: var(--map-land-hover);
 }
 
-/* Highlighted country pulse (guess-by-shape target) */
+/* Highlighted country pulse (guess-by-shape target). The land is dark brown,
+   so the target pulses between a vivid amber and a pale cream with a glow;
+   the old accent-to-accent-strong pulse was a mustard that blended into the
+   land. Deliberately not green or red, which mean right and wrong at reveal. */
 @keyframes geo-pulse {
   0%,
   100% {
-    fill: var(--accent);
+    fill: #ffb703;
+    filter: drop-shadow(0 0 3px rgba(255, 183, 3, 0.7));
   }
   50% {
-    fill: var(--accent-strong);
+    fill: #fff3c4;
+    filter: drop-shadow(0 0 16px rgba(255, 200, 40, 0.95));
   }
 }
 
 .geo-highlighted {
-  animation: geo-pulse 1.8s ease-in-out infinite;
+  animation: geo-pulse 1.4s ease-in-out infinite;
 }
 
 /* Reveal feedback pulse (post-guess correct/incorrect country) — a glow on

@@ -102,7 +102,7 @@ function ActiveRound({
   // loupe button), which overrides the map's usual framing until the next
   // question — see WorldMapProps.manualFocusCode. Reset it when the question
   // changes via the "adjust state during render" pattern (comparing against
-  // a tracked previous index) rather than a useEffect, matching this
+  // a tracked previous value) rather than a useEffect, matching this
   // codebase's established fix for the react-hooks/set-state-in-effect rule
   // (see CLAUDE.md).
   const [manualFocusCode, setManualFocusCode] = useState<string | null>(null);
@@ -112,10 +112,24 @@ function ActiveRound({
   // change and the effect wouldn't re-fire (confirmed live: the zoom button
   // only ever worked once).
   const [manualFocusNonce, setManualFocusNonce] = useState(0);
-  const [manualFocusIndex, setManualFocusIndex] = useState(state.currentIndex);
-  if (state.currentIndex !== manualFocusIndex) {
-    setManualFocusIndex(state.currentIndex);
-    setManualFocusCode(null);
+  // Keyed on the question's country (not the index) so the very first
+  // question, which loads after mount, is covered too. In SHAPE mode each
+  // question starts already zoomed in on the highlighted country; in NAME
+  // mode the target's location is the puzzle, so it starts unfocused.
+  const questionCode = state.questions[state.currentIndex]?.code ?? null;
+  const [focusedQuestion, setFocusedQuestion] = useState<string | null>(null);
+  if (questionCode !== focusedQuestion) {
+    setFocusedQuestion(questionCode);
+    setManualFocusCode(config.mode === "SHAPE" ? questionCode : null);
+    setManualFocusNonce((n) => n + 1);
+  }
+  // At the reveal, drop that automatic focus so the map frames the guess and
+  // the right answer together (a manual focus would override that fit).
+  // Anything the player requests after this still applies.
+  const [focusedStatus, setFocusedStatus] = useState(state.status);
+  if (state.status !== focusedStatus) {
+    setFocusedStatus(state.status);
+    if (state.status === "revealing") setManualFocusCode(null);
   }
 
   const requestManualFocus = useCallback((code: string) => {

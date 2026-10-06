@@ -347,11 +347,15 @@ function ActiveRound({
                 Which country is highlighted?
               </p>
             )}
-            {/* Only after guessing -- zooming to the target beforehand would
-                narrow down its location for free in NAME mode, since the
-                map isn't otherwise showing where it is. */}
-            {isRevealing && (
-              <ZoomButton label="Zoom in on this country" onClick={() => requestManualFocus(current.code)} />
+            {/* In NAME mode only after guessing: zooming to the target beforehand
+                would narrow down its location for free, since the map isn't
+                otherwise showing where it is. In SHAPE mode the target is
+                already highlighted, so a closer look is fine at any time. */}
+            {(isRevealing || config.mode === "SHAPE") && (
+              <ZoomButton
+                label={isRevealing ? "Zoom in on this country" : "Zoom in on the highlighted country"}
+                onClick={() => requestManualFocus(current.code)}
+              />
             )}
           </div>
         </motion.div>

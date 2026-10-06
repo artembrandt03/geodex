@@ -9,9 +9,10 @@ import {
   ZoomableGroup,
 } from "react-simple-maps";
 import { animate, motion } from "framer-motion";
-import { geoBounds, geoEquirectangular } from "d3-geo";
+import { geoEquirectangular } from "d3-geo";
 import { feature } from "topojson-client";
 import type { Feature, Geometry } from "geojson";
+import { focusBounds } from "@/lib/game/focusBounds";
 import type { GeometryCollection, Topology } from "topojson-specification";
 
 const GEOGRAPHY_URL = "/data/countries-50m.json";
@@ -102,20 +103,12 @@ function computeFocusView(
 ): { center: [number, number]; zoom: number } | null {
   if (features.length === 0) return null;
 
-  const bounds = features.map((f) => geoBounds(f));
-
-  // d3-geo signals an antimeridian-crossing feature (Russia, Fiji, ...) by
-  // returning a minimum longitude numerically greater than the maximum
-  // (the true extent wraps through 180°). Merging that with a plain min/max
-  // against another country silently produces a bogus, wildly-off-target
-  // box (confirmed live: a Canada/Russia reveal centered the zoom entirely
-  // inside Canada, cutting Russia off screen). Rather than implement
-  // general circular-arc merging for what's a handful of countries,
-  // fall back to the default full-world framing — at zoom 1 both countries
-  // are already visible, just not tightly fit.
-  if (bounds.some(([[lon0], [lon1]]) => lon0 > lon1)) {
-    return { center: DEFAULT_CENTER, zoom: MIN_ZOOM };
-  }
+  // The box of each country's main landmass, never wrapping around the
+  // antimeridian (see focusBounds). This used to be a raw geoBounds that
+  // gave up and showed the whole world for any country with a piece across
+  // the 180th meridian (New Zealand, Russia, Fiji, the USA), which made
+  // zoom-in silently do nothing for them.
+  const bounds = features.map((f) => focusBounds(f));
 
   let minLon = Infinity;
   let minLat = Infinity;

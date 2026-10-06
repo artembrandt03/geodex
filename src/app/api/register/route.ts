@@ -2,19 +2,12 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { containsProfanity } from "@/lib/validation";
+import { displayNameSchema } from "@/lib/profile/displayName";
 
 const registerSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8, "Password must be at least 8 characters"),
-  displayName: z
-    .string()
-    .trim()
-    .min(2)
-    .max(30)
-    .refine((name) => !containsProfanity(name), {
-      message: "That display name isn't allowed. Please choose another.",
-    }),
+  displayName: displayNameSchema,
 });
 
 export async function POST(request: Request) {

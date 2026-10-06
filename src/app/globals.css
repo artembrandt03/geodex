@@ -42,6 +42,11 @@
 }
 
 @theme inline {
+  /* Between xl (80rem) and 2xl (96rem): where the profile page has room for
+     three windows side by side. A named breakpoint, not min-[1700px]:, because
+     Tailwind sorts arbitrary min-* variants before xl and xl would win. */
+  --breakpoint-wide: 106rem;
+
   --color-background: var(--background);
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);

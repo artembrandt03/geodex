@@ -83,7 +83,7 @@ export function MatchHistory({ endpoint = "/api/profile/history" }: { endpoint?:
       )}
 
       <div className="overflow-x-auto rounded-xl border border-border bg-surface-2/50">
-        <table className="w-full min-w-[34rem] text-left text-sm">
+        <table className="w-full min-w-[30rem] text-left text-sm">
           <thead>
             <tr className="border-b border-border text-xs uppercase tracking-wide text-muted">
               <th className="px-3 py-2.5 font-medium">Played</th>

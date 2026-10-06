@@ -33,14 +33,16 @@ export function ProfileView() {
             <p className="text-danger">{profile.message}</p>
           </Notice>
         ) : (
-          <div className="grid w-full max-w-6xl grid-cols-[minmax(0,1fr)] gap-6 xl:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] xl:items-start">
-            <div className="flex flex-col gap-6">
+          // Phone: one column. xl: the profile card beside stats over history.
+          // wide (1700px) and up: all three side by side. Each window is a direct grid item so it
+          // can move between those layouts.
+          <div className="grid w-full max-w-6xl grid-cols-[minmax(0,1fr)] gap-6 xl:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] xl:items-start wide:max-w-[1800px] wide:grid-cols-[minmax(0,22rem)_minmax(0,1fr)_minmax(0,1.15fr)]">
+            <div className="xl:row-span-2 wide:row-span-1">
               <ProfileCard user={profile.user} onChanged={profile.refresh} />
             </div>
-            <div className="flex flex-col gap-6">
-              <StatsWindow stats={profile.stats} />
-              <MatchHistory />
-            </div>
+            <StatsWindow stats={profile.stats} />
+            {/* Keyed on the round count so it reloads after a reset wipes the history. */}
+            <MatchHistory key={profile.stats.roundsPlayed} />
           </div>
         )}
       </div>

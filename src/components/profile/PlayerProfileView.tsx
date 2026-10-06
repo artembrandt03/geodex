@@ -57,12 +57,13 @@ export function PlayerProfileView({ id }: { id: string }) {
         {current === null ? (
           <p className="mt-24 animate-pulse text-muted">Loading profile...</p>
         ) : current.status === "ready" ? (
-          <div className="grid w-full max-w-6xl grid-cols-[minmax(0,1fr)] gap-6 xl:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] xl:items-start">
-            <PlayerCard data={current.data} />
-            <div className="flex flex-col gap-6">
-              <StatsWindow stats={current.data.stats} />
-              <MatchHistory endpoint={`/api/players/${encodeURIComponent(id)}/history`} />
+          // Same responsive layout as the owner's profile page.
+          <div className="grid w-full max-w-6xl grid-cols-[minmax(0,1fr)] gap-6 xl:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] xl:items-start wide:max-w-[1800px] wide:grid-cols-[minmax(0,22rem)_minmax(0,1fr)_minmax(0,1.15fr)]">
+            <div className="xl:row-span-2 wide:row-span-1">
+              <PlayerCard data={current.data} />
             </div>
+            <StatsWindow stats={current.data.stats} />
+            <MatchHistory endpoint={`/api/players/${encodeURIComponent(id)}/history`} />
           </div>
         ) : (
           <Notice>

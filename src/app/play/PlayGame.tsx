@@ -173,6 +173,22 @@ function ActiveRound({
     return () => setGuardEnabled(false);
   }, [setGuardEnabled]);
 
+  // Enter moves on from the reveal, same as the Next button. Auto-repeat is
+  // ignored (holding Enter after submitting a typed guess must not skip the
+  // result), and so is Enter while a dialog is open (e.g. the "End this
+  // round?" confirmation, where Enter belongs to the dialog).
+  useEffect(() => {
+    if (!isRevealing) return;
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key !== "Enter" || event.repeat || event.defaultPrevented) return;
+      if (document.querySelector('[role="dialog"]')) return;
+      event.preventDefault();
+      advance();
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isRevealing, advance]);
+
   // While playing (NAME mode), a map click submits a guess. During the
   // reveal, the map stays clickable but repurposed: clicking any country
   // (e.g. the one you just guessed) zooms in on it instead, for a closer
@@ -401,6 +417,9 @@ function ActiveRound({
               className="rounded-lg bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground shadow-lg shadow-black/20"
             >
               {state.currentIndex + 1 >= config.roundLength ? "See results" : "Next question"}
+              <kbd className="ml-2 rounded bg-white/25 px-1.5 py-0.5 font-sans text-[10px] font-medium">
+                Enter
+              </kbd>
             </motion.button>
           </motion.div>
         )}

@@ -16,7 +16,7 @@ export async function GET() {
   const [user, stats] = await Promise.all([
     prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { displayName: true, email: true, createdAt: true },
+      select: { displayName: true, email: true, createdAt: true, profilePublic: true },
     }),
     getUserStats(session.user.id),
   ]);
@@ -31,9 +31,19 @@ export async function GET() {
   );
 }
 
-const updateSchema = z.object({ displayName: displayNameSchema });
+const updateSchema = z
+  .object({
+    displayName: displayNameSchema.optional(),
+    profilePublic: z.boolean().optional(),
+  })
+  .refine((v) => v.displayName !== undefined || v.profilePublic !== undefined, {
+    message: "Nothing to update",
+  });
 
-/** Changes the signed-in player's display name (same rules as at signup). */
+/**
+ * Updates the signed-in player's settings: their display name (same rules as
+ * at signup) and/or whether other players can open their profile.
+ */
 export async function PATCH(request: Request) {
   const session = await auth();
   if (!session?.user?.id) {
@@ -44,18 +54,18 @@ export async function PATCH(request: Request) {
   const parsed = updateSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
-      { error: parsed.error.issues[0]?.message ?? "Invalid display name" },
+      { error: parsed.error.issues[0]?.message ?? "Invalid input" },
       { status: 400 },
     );
   }
 
   const user = await prisma.user.update({
     where: { id: session.user.id },
-    data: { displayName: parsed.data.displayName },
-    select: { displayName: true },
+    data: parsed.data,
+    select: { displayName: true, profilePublic: true },
   });
 
-  return NextResponse.json({ displayName: user.displayName });
+  return NextResponse.json(user);
 }
 
 const deleteSchema = z.object({ password: z.string().min(1, "Enter your password to confirm") });

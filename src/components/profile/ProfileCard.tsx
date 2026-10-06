@@ -4,6 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { useSession } from "next-auth/react";
 import { AboutWindow } from "@/components/about/AboutWindow";
+import { Switch } from "@/components/ui/Switch";
 import { ChangeDisplayNameModal } from "./ChangeDisplayNameModal";
 import { ChangePasswordModal } from "./ChangePasswordModal";
 import { DeleteAccountModal } from "./DeleteAccountModal";
@@ -17,6 +18,29 @@ export function ProfileCard({ user, onChanged }: { user: ProfileUser; onChanged:
   const [passwordOpen, setPasswordOpen] = useState(false);
   const [nameOpen, setNameOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  // Saved the moment it's flipped; rolled back (with a message) if the save fails.
+  const [isPublic, setIsPublic] = useState(user.profilePublic);
+  const [savingVisibility, setSavingVisibility] = useState(false);
+  const [visibilityError, setVisibilityError] = useState<string | null>(null);
+
+  async function changeVisibility(next: boolean) {
+    setVisibilityError(null);
+    setIsPublic(next);
+    setSavingVisibility(true);
+    try {
+      const res = await fetch("/api/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ profilePublic: next }),
+      });
+      if (!res.ok) throw new Error("save failed");
+    } catch {
+      setIsPublic(!next);
+      setVisibilityError("Couldn't save that. Try again.");
+    } finally {
+      setSavingVisibility(false);
+    }
+  }
 
   return (
     <AboutWindow title="Your profile">
@@ -49,6 +73,30 @@ export function ProfileCard({ user, onChanged }: { user: ProfileUser; onChanged:
         />
         <Detail label="Member since" value={memberSince.format(new Date(user.createdAt))} />
       </dl>
+
+      <div className="flex flex-col gap-1.5 rounded-xl border border-border bg-surface-2/50 px-4 py-3">
+        <div className="flex items-center justify-between gap-4">
+          <div className="min-w-0">
+            <p className="font-medium">Public profile</p>
+            <p className="text-xs leading-snug text-muted">
+              {isPublic
+                ? "Other players can open your profile from the leaderboard."
+                : "Your profile is hidden. Your name still shows on the leaderboard, but no one can open it."}
+            </p>
+          </div>
+          <Switch
+            checked={isPublic}
+            onChange={(next) => void changeVisibility(next)}
+            disabled={savingVisibility}
+            label="Public profile"
+          />
+        </div>
+        {visibilityError && (
+          <p role="alert" className="text-xs font-semibold text-danger">
+            {visibilityError}
+          </p>
+        )}
+      </div>
 
       <div className="flex items-center justify-between gap-3 border-t border-border pt-4 text-sm">
         <span className="text-muted">Done with Geodex?</span>

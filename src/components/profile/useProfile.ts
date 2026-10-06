@@ -7,6 +7,7 @@ export interface ProfileUser {
   displayName: string;
   email: string;
   createdAt: string;
+  profilePublic: boolean;
 }
 
 export type ProfileData =

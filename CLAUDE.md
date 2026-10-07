@@ -29,7 +29,7 @@ No hard time limit per question — players can take as long as they want.
 Reworked 2026-10-03 (see the status log); all numbers live in `src/lib/game/scoring.ts` and are unit-tested.
 
 - **Base points by difficulty**: Easy 10, Medium 20, Hard 30 (correct answers only).
-- **Speed bonus**: +100% / +50% / +25% of the base for answering within 5s / 10s / 15s; slower earns just the base.
+- **Speed bonus**: +100% / +50% / +25% of the base for answering within 5s / 10s / 15s; slower earns just the base. **Shape mode gets double the time** (10s / 20s / 30s, `SPEED_WINDOW_SCALE`), since typing a name takes longer than clicking; the bonuses and so the maximum score are the same.
 - **Streak bonus**: the 3rd correct answer in a row earns +5, and each further correct answer in the run earns 1 more than the last (+6, +7, ...). A wrong answer ends the run.
 - **Neighbor bonus**: a wrong guess that shares a land border with the answer earns +1 (it still ends the streak).
 - Any other wrong guess (or no match): **0 points**.

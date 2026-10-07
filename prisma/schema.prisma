@@ -111,3 +111,17 @@ model Feedback {
 
   @@index([ipHash, createdAt])
 }
+
+/// One counted event for rate limiting (a failed login, a signup attempt...).
+/// See lib/rateLimit.ts. `key` is an HMAC of what's being limited (an IP, an
+/// email), never the raw value, and old rows are swept out as new ones arrive.
+model RateLimitHit {
+  id        String   @id @default(cuid())
+  /// What's being limited, e.g. "login-fail:email".
+  bucket    String
+  key       String
+  createdAt DateTime @default(now())
+
+  @@index([bucket, key, createdAt])
+  @@index([createdAt])
+}

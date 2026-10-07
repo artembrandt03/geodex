@@ -1,7 +1,7 @@
-import { createHmac } from "node:crypto";
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { clientIp, hashKey } from "@/lib/clientIp";
 import {
   FEEDBACK_LIMIT_PER_HOUR,
   MAX_ATTACHMENTS,
@@ -21,23 +21,6 @@ const MAX_REQUEST_BYTES = MAX_TOTAL_ATTACHMENT_BYTES + 256 * 1024;
 
 function fail(error: string, status: number) {
   return NextResponse.json({ error }, { status });
-}
-
-/** Best guess at the sender's IP from the proxy headers (Netlify, then generic). */
-function clientIp(request: Request): string | null {
-  return (
-    request.headers.get("x-nf-client-connection-ip") ??
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-    request.headers.get("x-real-ip") ??
-    null
-  );
-}
-
-/** Rate-limit key: an HMAC of the IP, so the address itself is never stored. */
-function hashIp(ip: string): string {
-  return createHmac("sha256", process.env.AUTH_SECRET ?? "geodex-feedback")
-    .update(ip)
-    .digest("hex");
 }
 
 /**
@@ -66,7 +49,7 @@ async function getLimitStatus(ipHash: string | null): Promise<FeedbackLimitStatu
 /** Lets the form show the limit (or a "come back later" screen) before anyone types. */
 export async function GET(request: Request) {
   const ip = clientIp(request);
-  return NextResponse.json(await getLimitStatus(ip ? hashIp(ip) : null), {
+  return NextResponse.json(await getLimitStatus(ip ? hashKey(ip) : null), {
     headers: { "Cache-Control": "no-store" },
   });
 }
@@ -124,7 +107,7 @@ export async function POST(request: Request) {
   }
 
   const ip = clientIp(request);
-  const ipHash = ip ? hashIp(ip) : null;
+  const ipHash = ip ? hashKey(ip) : null;
   const limit = await getLimitStatus(ipHash);
   if (limit.remaining === 0) {
     return NextResponse.json(

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { signIn } from "next-auth/react";
 import { PasswordField } from "@/components/auth/PasswordField";
+import { MINIMUM_AGE } from "@/lib/legal";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -13,6 +14,7 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -32,7 +34,7 @@ export default function RegisterPage() {
       const response = await fetch("/api/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ displayName, email, password }),
+        body: JSON.stringify({ displayName, email, password, acceptTerms: acceptedTerms }),
       });
 
       const data = await response.json();
@@ -119,6 +121,38 @@ export default function RegisterPage() {
               onChange={setConfirmPassword}
               autoComplete="new-password"
             />
+
+            {/* Required, and checked again on the server: consent to collecting an
+                account's personal information has to be clear and deliberate. The links
+                open in a new tab so reading them doesn't lose the half-filled form. */}
+            <label className="flex items-start gap-2.5 text-sm leading-snug">
+              <input
+                type="checkbox"
+                required
+                checked={acceptedTerms}
+                onChange={(e) => setAcceptedTerms(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
+              />
+              <span>
+                I am at least {MINIMUM_AGE} years old and I agree to the{" "}
+                <Link
+                  href="/terms"
+                  target="_blank"
+                  className="text-primary underline underline-offset-4"
+                >
+                  Terms of Use
+                </Link>{" "}
+                and{" "}
+                <Link
+                  href="/privacy"
+                  target="_blank"
+                  className="text-primary underline underline-offset-4"
+                >
+                  Privacy Policy
+                </Link>
+                .
+              </span>
+            </label>
 
             {error && <p className="text-sm text-danger">{error}</p>}
 

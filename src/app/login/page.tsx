@@ -6,6 +6,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { signIn } from "next-auth/react";
 import { PasswordField } from "@/components/auth/PasswordField";
+import { LegalLinks } from "@/components/legal/LegalLinks";
 import { parseRateLimitedCode, rateLimitedMessage } from "@/lib/authLimits";
 
 export default function LoginPage() {
@@ -90,6 +91,7 @@ export default function LoginPage() {
               Sign up
             </Link>
           </p>
+          <LegalLinks />
         </motion.div>
       </div>
     </div>

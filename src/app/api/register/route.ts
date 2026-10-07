@@ -11,6 +11,11 @@ const registerSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8, "Password must be at least 8 characters"),
   displayName: displayNameSchema,
+  // The signup form's consent box (age and the terms and privacy policy). The
+  // form requires it, and so does the API, so it can't be skipped by calling it directly.
+  acceptTerms: z.literal(true, {
+    error: "Please confirm your age and accept the Terms of Use and Privacy Policy.",
+  }),
 });
 
 export async function POST(request: Request) {

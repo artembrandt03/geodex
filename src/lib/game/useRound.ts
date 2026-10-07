@@ -30,6 +30,8 @@ export interface RoundState {
   saved: boolean;
   /** 1-based place on the leaderboard if this round made the top 5, once saved. */
   leaderboardRank: number | null;
+  /** The server's signed receipt that this round was started; sent back when saving. */
+  roundToken: string | null;
 }
 
 const INITIAL_STATE: RoundState = {
@@ -47,6 +49,7 @@ const INITIAL_STATE: RoundState = {
   errorMessage: null,
   saved: false,
   leaderboardRank: null,
+  roundToken: null,
 };
 
 async function loadNeighbors(): Promise<NeighborMap> {
@@ -79,7 +82,7 @@ export function useRound(config: RoundConfig | null) {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error ?? "Could not start round");
       }
-      return (await res.json()) as { questions: RoundQuestion[] };
+      return (await res.json()) as { questions: RoundQuestion[]; token: string };
     });
 
     Promise.all([questions, loadNeighbors()])
@@ -90,6 +93,7 @@ export function useRound(config: RoundConfig | null) {
           ...INITIAL_STATE,
           status: "playing",
           questions: data.questions,
+          roundToken: data.token,
           questionStartedAt: Date.now(),
         });
       })
@@ -169,7 +173,9 @@ export function useRound(config: RoundConfig | null) {
 
   // Persist the finished round for signed-in users.
   useEffect(() => {
-    if (state.status !== "finished" || state.saved || !config || !session?.user) return;
+    if (state.status !== "finished" || state.saved || !config || !session?.user || !state.roundToken) {
+      return;
+    }
 
     fetch("/api/rounds/complete", {
       method: "POST",
@@ -183,6 +189,7 @@ export function useRound(config: RoundConfig | null) {
         totalTimeMs: totalTimeMs(state.outcomes),
         bestStreak: state.bestStreak,
         neighborCount: state.neighborCount,
+        roundToken: state.roundToken,
       }),
     })
       .then(async (res) => {
@@ -201,6 +208,7 @@ export function useRound(config: RoundConfig | null) {
     state.outcomes,
     state.bestStreak,
     state.neighborCount,
+    state.roundToken,
     config,
     session?.user,
   ]);

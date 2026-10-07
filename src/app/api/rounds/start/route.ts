@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { ROUND_LENGTHS } from "@/lib/game/types";
 import { pickRoundCountries } from "@/lib/game/countrySelection";
+import { issueRoundToken } from "@/lib/game/roundToken";
 
 const startRoundSchema = z.object({
   mode: z.enum(["NAME", "SHAPE"]),
@@ -31,11 +32,15 @@ export async function POST(request: Request) {
     );
   }
 
-  const { difficulty, roundLength } = parsed.data;
+  const { mode, difficulty, roundLength } = parsed.data;
 
   try {
     const questions = await pickRoundCountries(difficulty, roundLength);
-    return NextResponse.json({ questions });
+    // The token is what lets /api/rounds/complete know this round really was started here.
+    return NextResponse.json({
+      questions,
+      token: issueRoundToken({ mode, difficulty, roundLength }),
+    });
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: "Could not start round" }, { status: 500 });

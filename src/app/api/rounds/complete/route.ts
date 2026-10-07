@@ -4,10 +4,17 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getLeaderboard } from "@/lib/leaderboard";
 import { SCORING_VERSION } from "@/lib/game/scoring";
+import { checkRoundPlausible } from "@/lib/game/plausibility";
 import { ROUND_LENGTHS } from "@/lib/game/types";
 
-// A round can't take longer than a day; guards against garbage, not cheating.
+// A round can't take longer than a day.
 const MAX_ROUND_MS = 24 * 60 * 60 * 1000;
+// Hard ceilings so absurd numbers fail validation here instead of overflowing the
+// database's 32-bit integer columns (which used to be a 500). The best possible
+// round is about 1,450 points over 20 countries; checkRoundPlausible does the
+// precise check below.
+const MAX_SCORE = 10_000;
+const MAX_COUNT = Math.max(...ROUND_LENGTHS);
 
 const completeRoundSchema = z.object({
   mode: z.enum(["NAME", "SHAPE"]),
@@ -16,11 +23,11 @@ const completeRoundSchema = z.object({
     .number()
     .int()
     .refine((n) => (ROUND_LENGTHS as readonly number[]).includes(n)),
-  score: z.number().int().min(0),
-  correct: z.number().int().min(0),
+  score: z.number().int().min(0).max(MAX_SCORE),
+  correct: z.number().int().min(0).max(MAX_COUNT),
   totalTimeMs: z.number().int().min(0).max(MAX_ROUND_MS),
-  bestStreak: z.number().int().min(0),
-  neighborCount: z.number().int().min(0),
+  bestStreak: z.number().int().min(0).max(MAX_COUNT),
+  neighborCount: z.number().int().min(0).max(MAX_COUNT),
 });
 
 /**
@@ -47,8 +54,14 @@ export async function POST(request: Request) {
   const { mode, difficulty, roundLength, score, correct, totalTimeMs, bestStreak, neighborCount } =
     parsed.data;
 
-  if (correct > roundLength || bestStreak > correct || neighborCount > roundLength - correct) {
-    return NextResponse.json({ error: "Inconsistent round totals" }, { status: 400 });
+  // The round is scored in the browser, so reject anything the scoring rules
+  // make impossible (a forged score, a streak longer than the round, a round
+  // finished faster than a person can play). The reason is logged, but the
+  // reply stays generic so it doesn't coach anyone on what to adjust.
+  const verdict = checkRoundPlausible(parsed.data);
+  if (!verdict.ok) {
+    console.warn(`[rounds/complete] rejected a round from ${session.user.id}: ${verdict.reason}`);
+    return NextResponse.json({ error: "That result doesn't look right." }, { status: 400 });
   }
 
   const gameResult = await prisma.gameResult.create({

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { signIn } from "next-auth/react";
 import { PasswordField } from "@/components/auth/PasswordField";
+import { parseRateLimitedCode, rateLimitedMessage } from "@/lib/authLimits";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -27,7 +28,9 @@ export default function LoginPage() {
       });
 
       if (result?.error) {
-        setError("Invalid email or password");
+        // A refused-for-too-many-failures attempt carries the wait in its code.
+        const waitMinutes = parseRateLimitedCode(result.code);
+        setError(waitMinutes ? rateLimitedMessage(waitMinutes) : "Invalid email or password");
         return;
       }
 

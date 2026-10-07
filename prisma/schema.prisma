@@ -60,6 +60,10 @@ model GameResult {
   /// since scores under different rules aren't comparable. Rows from before
   /// versioning are 1.
   scoringVersion Int        @default(1)
+  /// Id of the server-issued round token this result came back with (see
+  /// lib/game/roundToken.ts). Unique, so a token, and the result it vouches for,
+  /// can only be saved once. Null on rounds saved before tokens existed.
+  roundNonce     String?    @unique
   createdAt      DateTime   @default(now())
 
   // Powers "top score per user per mode/difficulty/roundLength" leaderboard queries.

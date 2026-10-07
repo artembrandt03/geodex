@@ -211,8 +211,9 @@ export function SetupScene() {
 
             <div className="text-center">
               <h1 className="flex items-center justify-center gap-2 font-display text-5xl font-bold tracking-tight">
+                {/* The 96px copy: this is shown at 48px, and the full 640px one is 1.2 MB. */}
                 {/* eslint-disable-next-line @next/next/no-img-element -- keep the animation */}
-                <img src="/images/earth-rotating.webp" alt="" width={48} height={48} className="rounded-full" />
+                <img src="/images/earth-rotating-small.webp" alt="" width={48} height={48} className="rounded-full" />
                 Geodex
               </h1>
               <p className="mt-3 text-lg text-muted">

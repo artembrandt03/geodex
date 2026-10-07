@@ -38,6 +38,39 @@ export function loginRules(emailKey: string, ipKey: string | null): RateLimitRul
   return rules;
 }
 
+/**
+ * Signup allowance per IP: generous enough for a family or a classroom
+ * behind one address, tight enough to stop a script from minting accounts
+ * (or probing which emails are taken, since a taken email is reported).
+ * Every attempt that gets past validation counts, successful or not.
+ */
+export const SIGNUPS_PER_IP = 10;
+export const SIGNUP_WINDOW_MS = 60 * MINUTE;
+export const SIGNUP_IP_BUCKET = "signup:ip";
+
+export function signupRule(ipKey: string): RateLimitRule {
+  return { bucket: SIGNUP_IP_BUCKET, key: ipKey, limit: SIGNUPS_PER_IP, windowMs: SIGNUP_WINDOW_MS };
+}
+
+/**
+ * Wrong-password allowance on the actions that ask for the current password
+ * (change password, reset statistics, delete account), per signed-in user.
+ * Without it, someone on a hijacked or left-open session could guess the
+ * password there with no limit, even though login itself is throttled.
+ */
+export const PASSWORD_CHECK_FAILURES = 5;
+export const PASSWORD_CHECK_WINDOW_MS = 15 * MINUTE;
+export const PASSWORD_CHECK_BUCKET = "password-check:user";
+
+export function passwordCheckRule(userKey: string): RateLimitRule {
+  return {
+    bucket: PASSWORD_CHECK_BUCKET,
+    key: userKey,
+    limit: PASSWORD_CHECK_FAILURES,
+    windowMs: PASSWORD_CHECK_WINDOW_MS,
+  };
+}
+
 /** Prefix of the error code the login form looks for; the minutes to wait follow it. */
 export const RATE_LIMITED_CODE_PREFIX = "rate_limited_";
 

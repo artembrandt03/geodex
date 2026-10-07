@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getUserStats } from "@/lib/profile/data";
 import { displayNameSchema } from "@/lib/profile/displayName";
+import { checkCurrentPassword, passwordLimitedMessage } from "@/lib/passwordCheck";
 
 /** The signed-in player's account details and lifetime stats (current scoring rules only). */
 export async function GET() {
@@ -99,9 +99,11 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: "Account not found" }, { status: 404 });
   }
 
-  const matches = await bcrypt.compare(parsed.data.password, user.passwordHash);
-  if (!matches) {
-    return NextResponse.json({ error: "That password isn't right" }, { status: 403 });
+  const check = await checkCurrentPassword(session.user.id, user.passwordHash, parsed.data.password);
+  if (!check.ok) {
+    return check.reason === "limited"
+      ? NextResponse.json({ error: passwordLimitedMessage(check.minutes) }, { status: 429 })
+      : NextResponse.json({ error: "That password isn't right" }, { status: 403 });
   }
 
   await prisma.user.delete({ where: { id: session.user.id } });

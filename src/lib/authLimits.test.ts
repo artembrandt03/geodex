@@ -3,8 +3,13 @@ import {
   LOGIN_EMAIL_BUCKET,
   LOGIN_IP_BUCKET,
   loginRules,
+  PASSWORD_CHECK_BUCKET,
+  SIGNUP_IP_BUCKET,
+  SIGNUPS_PER_IP,
   parseRateLimitedCode,
+  passwordCheckRule,
   rateLimitedMessage,
+  signupRule,
 } from "./authLimits";
 
 describe("loginRules", () => {
@@ -43,5 +48,19 @@ describe("rate limit error codes", () => {
   it("words the wait in minutes", () => {
     expect(rateLimitedMessage(1)).toBe("Too many failed attempts. Please try again in 1 minute.");
     expect(rateLimitedMessage(14)).toBe("Too many failed attempts. Please try again in 14 minutes.");
+  });
+});
+
+describe("signup and password-check rules", () => {
+  it("limits signups per IP", () => {
+    const rule = signupRule("ip-hash");
+    expect(rule).toMatchObject({ bucket: SIGNUP_IP_BUCKET, key: "ip-hash", limit: SIGNUPS_PER_IP });
+    expect(rule.windowMs).toBe(60 * 60_000);
+  });
+
+  it("limits wrong-password checks per user, as strictly as logins per email", () => {
+    const rule = passwordCheckRule("user-hash");
+    expect(rule).toMatchObject({ bucket: PASSWORD_CHECK_BUCKET, key: "user-hash", limit: 5 });
+    expect(rule.limit).toBe(loginRules("x", null)[0].limit);
   });
 });

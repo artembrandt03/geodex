@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { changePasswordSchema } from "@/lib/profile/password";
+import { checkCurrentPassword, passwordLimitedMessage } from "@/lib/passwordCheck";
 
 /**
  * Changes the signed-in player's password. The current password has to be
@@ -33,9 +34,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Account not found" }, { status: 404 });
   }
 
-  const matches = await bcrypt.compare(currentPassword, user.passwordHash);
-  if (!matches) {
-    return NextResponse.json({ error: "Your current password isn't right" }, { status: 403 });
+  const check = await checkCurrentPassword(session.user.id, user.passwordHash, currentPassword);
+  if (!check.ok) {
+    return check.reason === "limited"
+      ? NextResponse.json({ error: passwordLimitedMessage(check.minutes) }, { status: 429 })
+      : NextResponse.json({ error: "Your current password isn't right" }, { status: 403 });
   }
 
   await prisma.user.update({

@@ -3,6 +3,9 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { displayNameSchema } from "@/lib/profile/displayName";
+import { clientIp, hashKey } from "@/lib/clientIp";
+import { checkRateLimit, minutesUntil, recordHit } from "@/lib/rateLimit";
+import { signupRule } from "@/lib/authLimits";
 
 const registerSchema = z.object({
   email: z.string().email(),
@@ -22,6 +25,25 @@ export async function POST(request: Request) {
   }
 
   const { email, password, displayName } = parsed.data;
+
+  // Throttle per IP: a script minting accounts, or probing which emails are
+  // taken (a taken one is reported below), gets cut off. Every attempt that got
+  // this far counts, whether or not the account ends up created.
+  const ip = clientIp(request);
+  if (ip) {
+    const rule = signupRule(hashKey(ip));
+    const state = await checkRateLimit(rule);
+    if (state.limited) {
+      const minutes = minutesUntil(state.retryAfterMs);
+      return NextResponse.json(
+        {
+          error: `Too many sign-up attempts. Please try again in ${minutes} ${minutes === 1 ? "minute" : "minutes"}.`,
+        },
+        { status: 429 },
+      );
+    }
+    await recordHit(rule.bucket, rule.key);
+  }
 
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {

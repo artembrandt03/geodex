@@ -15,7 +15,7 @@ import { RoundSummary } from "@/components/game/RoundSummary";
 import { StreakBadge } from "@/components/game/StreakBadge";
 import { useRound } from "@/lib/game/useRound";
 import { totalTimeMs } from "@/lib/game/time";
-import { normalizeAnswer } from "@/lib/game/normalizeAnswer";
+import { matchCountry } from "@/lib/game/matchCountry";
 import { ROUND_LENGTHS } from "@/lib/game/types";
 import type { RoundConfig } from "@/lib/game/types";
 
@@ -274,9 +274,8 @@ function ActiveRound({
   function handleShapeSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (isRevealing || !guessInput.trim()) return;
-    const normalizedGuess = normalizeAnswer(guessInput);
-    const match = countryNames.find((c) => normalizeAnswer(c.name) === normalizedGuess);
-    submitGuess(match?.code ?? null);
+    // Accepts the country's own name and common alternates ("USA", "Ivory Coast", ...).
+    submitGuess(matchCountry(guessInput, countryNames));
     setGuessInput("");
   }
 

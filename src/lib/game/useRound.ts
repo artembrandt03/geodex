@@ -118,6 +118,7 @@ export function useRound(config: RoundConfig | null) {
         const neighbor = !correct && isNeighbor(neighbors.current, guessedCode, target.code);
         const streak = correct ? s.streak + 1 : 0;
         const breakdown = scoreAnswer({
+          mode: config.mode,
           difficulty: config.difficulty,
           correct,
           neighbor,

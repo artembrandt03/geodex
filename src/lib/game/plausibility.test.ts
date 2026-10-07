@@ -157,7 +157,7 @@ describe("never rejects an honest round", () => {
         // From the fastest humanly allowed to a slow 40s.
         const elapsedMs = Math.round(MIN_MS_PER_QUESTION[mode] + rand() * 40_000 * rand());
         streak = right ? streak + 1 : 0;
-        score += scoreAnswer({ difficulty, correct: right, neighbor, elapsedMs, streak }).total;
+        score += scoreAnswer({ mode, difficulty, correct: right, neighbor, elapsedMs, streak }).total;
         correct += right ? 1 : 0;
         bestStreak = Math.max(bestStreak, streak);
         neighborCount += neighbor ? 1 : 0;

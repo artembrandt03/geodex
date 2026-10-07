@@ -5,7 +5,7 @@ import { scoreAnswer } from "./scoring";
 describe("breakdownParts", () => {
   it("lists base, speed and streak for a fast answer on a streak", () => {
     const elapsedMs = 3_000;
-    const b = scoreAnswer({ difficulty: "EASY", correct: true, neighbor: false, elapsedMs, streak: 4 });
+    const b = scoreAnswer({ mode: "NAME", difficulty: "EASY", correct: true, neighbor: false, elapsedMs, streak: 4 });
     const parts = breakdownParts(b, { elapsedMs, streak: 4 });
     expect(parts.map((p) => [p.kind, p.points])).toEqual([
       ["base", 10],
@@ -17,18 +17,28 @@ describe("breakdownParts", () => {
     expect(parts.reduce((sum, p) => sum + p.points, 0)).toBe(b.total);
   });
 
+  it("describes the speed window of the mode it was earned in", () => {
+    const elapsedMs = 8_000;
+    const shape = scoreAnswer({ mode: "SHAPE", difficulty: "EASY", correct: true, neighbor: false, elapsedMs, streak: 1 });
+    expect(breakdownParts(shape, { elapsedMs, streak: 1 }).find((p) => p.kind === "speed")?.detail).toBe(
+      "Answered under 10s",
+    );
+    const name = scoreAnswer({ mode: "NAME", difficulty: "EASY", correct: true, neighbor: false, elapsedMs, streak: 1 });
+    expect(breakdownParts(name, { elapsedMs, streak: 1 }).find((p) => p.kind === "speed")?.points).toBe(5);
+  });
+
   it("omits bonuses that weren't earned", () => {
-    const b = scoreAnswer({ difficulty: "HARD", correct: true, neighbor: false, elapsedMs: 40_000, streak: 1 });
+    const b = scoreAnswer({ mode: "NAME", difficulty: "HARD", correct: true, neighbor: false, elapsedMs: 40_000, streak: 1 });
     expect(breakdownParts(b, { elapsedMs: 40_000, streak: 1 }).map((p) => p.kind)).toEqual(["base"]);
   });
 
   it("shows only the neighbor bonus for a close wrong guess", () => {
-    const b = scoreAnswer({ difficulty: "EASY", correct: false, neighbor: true, elapsedMs: 2_000, streak: 0 });
+    const b = scoreAnswer({ mode: "NAME", difficulty: "EASY", correct: false, neighbor: true, elapsedMs: 2_000, streak: 0 });
     expect(breakdownParts(b, { elapsedMs: 2_000, streak: 0 }).map((p) => p.kind)).toEqual(["neighbor"]);
   });
 
   it("is empty for a plain wrong answer", () => {
-    const b = scoreAnswer({ difficulty: "EASY", correct: false, neighbor: false, elapsedMs: 2_000, streak: 0 });
+    const b = scoreAnswer({ mode: "NAME", difficulty: "EASY", correct: false, neighbor: false, elapsedMs: 2_000, streak: 0 });
     expect(breakdownParts(b, { elapsedMs: 2_000, streak: 0 })).toEqual([]);
   });
 });

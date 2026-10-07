@@ -1,4 +1,4 @@
-import { speedTierFor, type ScoreBreakdown } from "./scoring";
+import type { ScoreBreakdown } from "./scoring";
 
 export type PointPartKind = "base" | "speed" | "streak" | "neighbor";
 
@@ -22,11 +22,12 @@ export function breakdownParts(
     parts.push({ kind: "base", label: "Base", detail: "Correct answer", points: breakdown.base });
   }
   if (breakdown.speedBonus > 0) {
-    const tier = speedTierFor(context.elapsedMs);
     parts.push({
       kind: "speed",
       label: "Speed",
-      detail: tier ? `Answered ${tier.label.toLowerCase()}` : "Quick answer",
+      detail: breakdown.speedTierLabel
+        ? `Answered ${breakdown.speedTierLabel.toLowerCase()}`
+        : "Quick answer",
       points: breakdown.speedBonus,
     });
   }

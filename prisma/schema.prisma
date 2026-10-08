@@ -35,6 +35,9 @@ model User {
 enum EmailTokenKind {
   VERIFY_EMAIL
   RESET_PASSWORD
+  /// Handed to the browser right after a confirmation link is used, so the
+  /// success page can log that person in without asking for the password again.
+  AUTO_LOGIN
 }
 
 /// A single-use link emailed to a user (confirm the address, or reset the

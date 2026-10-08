@@ -1,6 +1,6 @@
-import nodemailer from "nodemailer";
 import type { FeedbackKindValue, ImageType } from "./feedback";
 import { IMAGE_EXTENSIONS } from "./feedback";
+import { getSmtpConfig, sendMail } from "./mail";
 
 export interface FeedbackEmailInput {
   id: string;
@@ -80,50 +80,20 @@ export function buildFeedbackEmail(input: FeedbackEmailInput) {
   };
 }
 
-/**
- * SMTP settings come from env vars so any provider works (a Gmail app
- * password, Resend/SendGrid/Postmark SMTP, ...) without a code change.
- * Returns null when mail isn't configured, so callers can degrade instead
- * of failing.
- */
+/** Mail settings for the feedback form: the shared SMTP config plus where reports are sent. Null when either is missing. */
 export function getMailConfig() {
-  const host = process.env.SMTP_HOST;
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
+  const smtp = getSmtpConfig();
   const to = process.env.FEEDBACK_TO_EMAIL;
-  if (!host || !user || !pass || !to) return null;
-
-  const port = Number(process.env.SMTP_PORT ?? 587);
-  return {
-    host,
-    port,
-    // 465 is implicit TLS; 587 upgrades with STARTTLS after connecting.
-    secure: process.env.SMTP_SECURE ? process.env.SMTP_SECURE === "true" : port === 465,
-    user,
-    pass,
-    to,
-    from: process.env.FEEDBACK_FROM_EMAIL ?? user,
-  };
+  if (!smtp || !to) return null;
+  return { ...smtp, to };
 }
 
 export async function sendFeedbackEmail(input: FeedbackEmailInput) {
   const config = getMailConfig();
   if (!config) throw new Error("Email is not configured (SMTP_* / FEEDBACK_TO_EMAIL).");
 
-  const transport = nodemailer.createTransport({
-    host: config.host,
-    port: config.port,
-    secure: config.secure,
-    auth: { user: config.user, pass: config.pass },
-    // Fail within a request's lifetime rather than hanging on a dead server.
-    connectionTimeout: 10_000,
-    greetingTimeout: 10_000,
-    socketTimeout: 20_000,
-  });
-
   const message = buildFeedbackEmail(input);
-  await transport.sendMail({
-    from: `"Geodex" <${config.from}>`,
+  await sendMail({
     to: config.to,
     // Lets "Reply" go straight to a signed-in sender.
     replyTo: input.sender?.email,

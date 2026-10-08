@@ -14,6 +14,7 @@ import {
   type ImageType,
 } from "@/lib/feedback";
 import { getMailConfig, sendFeedbackEmail } from "@/lib/feedbackEmail";
+import { emailBudgetAvailable, recordEmailSent } from "@/lib/emailBudget";
 
 const HOUR_MS = 60 * 60 * 1000;
 // A hair over the attachment cap, to cover the multipart framing + text fields.
@@ -133,7 +134,13 @@ export async function POST(request: Request) {
 
   // Stored either way; the email is best-effort and its outcome is recorded
   // on the row, so a mail outage never turns into "your message was lost".
-  if (getMailConfig()) {
+  if (getMailConfig() && !(await emailBudgetAvailable())) {
+    // The day's email budget is spent: keep the report, skip the email, and say why on the row.
+    await prisma.feedback.update({
+      where: { id: record.id },
+      data: { emailError: "Daily email budget reached; not emailed." },
+    });
+  } else if (getMailConfig()) {
     try {
       await sendFeedbackEmail({
         id: record.id,
@@ -149,6 +156,7 @@ export async function POST(request: Request) {
         submittedAt: record.createdAt,
         attachments,
       });
+      await recordEmailSent();
       await prisma.feedback.update({
         where: { id: record.id },
         data: { emailedAt: new Date() },

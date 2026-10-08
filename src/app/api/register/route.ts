@@ -7,7 +7,14 @@ import { clientIp, hashKey } from "@/lib/clientIp";
 import { checkRateLimit, minutesUntil, recordHit } from "@/lib/rateLimit";
 import { signupRule } from "@/lib/authLimits";
 import { checkEmailDomain, emailDomainMessage } from "@/lib/emailDomain";
-import { findUserByEmail, limitAccountEmails, sendVerification } from "@/lib/accountEmail";
+import {
+  emailBudgetResponse,
+  findUserByEmail,
+  limitAccountEmails,
+  sendVerification,
+} from "@/lib/accountEmail";
+import { emailBudgetAvailable } from "@/lib/emailBudget";
+import { getSmtpConfig } from "@/lib/mail";
 
 const registerSchema = z.object({
   email: z.string().trim().toLowerCase().email(),
@@ -96,6 +103,9 @@ export async function POST(request: Request) {
     }
     return NextResponse.json({ pendingVerification: true }, { status: 201 });
   }
+
+  // Don't create an account we can't email: with the day's budget spent, ask them to come back.
+  if (getSmtpConfig() && !(await emailBudgetAvailable())) return emailBudgetResponse();
 
   const user = await prisma.user.create({
     data: { email, passwordHash, displayName },

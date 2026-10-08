@@ -6,6 +6,7 @@ import { emailSendRules, type AccountEmailKind } from "@/lib/authLimits";
 import { issueToken, resetPasswordUrl, sweepExpiredTokens, verifyEmailUrl } from "@/lib/emailTokens";
 import { sendPasswordResetEmail, sendVerificationEmail } from "@/lib/authEmails";
 import { getSmtpConfig } from "@/lib/mail";
+import { EMAIL_BUDGET_MESSAGE, emailBudgetAvailable, recordEmailSent } from "@/lib/emailBudget";
 
 /** Server-side plumbing shared by the signup, resend, forgot-password and reset endpoints. */
 
@@ -19,6 +20,11 @@ export function findUserByEmail(email: string) {
   return prisma.user.findFirst({ where: { email: { equals: normalizeEmail(email), mode: "insensitive" } } });
 }
 
+/** The answer when today's whole email budget is spent; the same for every address, so it reveals nothing about accounts. */
+export function emailBudgetResponse(): NextResponse {
+  return NextResponse.json({ error: EMAIL_BUDGET_MESSAGE }, { status: 503 });
+}
+
 /**
  * Counts this request against the per-address and per-IP email allowance and
  * returns a 429 response if either is used up (null if it may go ahead).
@@ -30,6 +36,9 @@ export async function limitAccountEmails(
   email: string,
   kind: AccountEmailKind,
 ): Promise<NextResponse | null> {
+  // The whole day's budget first: if it's spent nobody gets an email, whoever they are.
+  if (!(await emailBudgetAvailable())) return emailBudgetResponse();
+
   const ip = clientIp(request);
   const rules = emailSendRules(kind, hashKey(normalizeEmail(email)), ip ? hashKey(ip) : null);
   for (const rule of rules) {
@@ -58,7 +67,13 @@ interface Recipient {
  * (throws), so a signup can't silently end up with no way to confirm.
  */
 async function deliver(send: () => Promise<void>, label: string, to: string, url: string) {
-  if (getSmtpConfig()) return send();
+  if (getSmtpConfig()) {
+    // Backstop for requests that raced past the earlier check.
+    if (!(await emailBudgetAvailable())) throw new Error("Daily email budget reached.");
+    await send();
+    await recordEmailSent();
+    return;
+  }
   if (process.env.NODE_ENV !== "production") {
     console.log(`[dev] SMTP isn't configured; ${label} link for ${to}: ${url}`);
     return;

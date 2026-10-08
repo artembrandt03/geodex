@@ -13,18 +13,44 @@ datasource db {
 
 /// A registered player. Guests never get a User row — guest play isn't persisted.
 model User {
-  id            String   @id @default(cuid())
-  email         String   @unique
-  passwordHash  String
-  displayName   String
+  id              String    @id @default(cuid())
+  email           String    @unique
+  passwordHash    String
+  displayName     String
   /// Whether other players can open this profile from the leaderboard. On by
   /// default; the owner can turn it off from their profile.
-  profilePublic Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  profilePublic   Boolean   @default(true)
+  /// When the owner proved they control this address by clicking the link we
+  /// emailed. Null means unconfirmed: that account cannot log in yet. Accounts
+  /// that existed before verification was added were marked confirmed.
+  emailVerifiedAt DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   gameResults GameResult[]
   feedback    Feedback[]
+  emailTokens EmailToken[]
+}
+
+enum EmailTokenKind {
+  VERIFY_EMAIL
+  RESET_PASSWORD
+}
+
+/// A single-use link emailed to a user (confirm the address, or reset the
+/// password). Only a SHA-256 of the token is stored, so a database leak does
+/// not hand out working links; the row is deleted once used.
+model EmailToken {
+  id        String         @id @default(cuid())
+  userId    String
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind      EmailTokenKind
+  tokenHash String         @unique
+  expiresAt DateTime
+  createdAt DateTime       @default(now())
+
+  @@index([userId, kind])
+  @@index([expiresAt])
 }
 
 /// Country reference/seed data used to generate rounds.

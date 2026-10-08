@@ -6,6 +6,7 @@ import { displayNameSchema } from "@/lib/profile/displayName";
 import { clientIp, hashKey } from "@/lib/clientIp";
 import { checkRateLimit, minutesUntil, recordHit } from "@/lib/rateLimit";
 import { signupRule } from "@/lib/authLimits";
+import { checkEmailDomain, emailDomainMessage } from "@/lib/emailDomain";
 
 const registerSchema = z.object({
   email: z.string().email(),
@@ -48,6 +49,13 @@ export async function POST(request: Request) {
       );
     }
     await recordHit(rule.bucket, rule.key);
+  }
+
+  // Refuse made-up domains and throwaway-inbox services. After the throttle, so
+  // the DNS lookups it costs can't be used to hammer us.
+  const domainCheck = await checkEmailDomain(email);
+  if (!domainCheck.ok) {
+    return NextResponse.json({ error: emailDomainMessage(domainCheck.reason) }, { status: 400 });
   }
 
   const existing = await prisma.user.findUnique({ where: { email } });

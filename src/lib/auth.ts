@@ -5,7 +5,13 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { clientIp, hashKey } from "@/lib/clientIp";
 import { checkRateLimit, clearHits, minutesUntil, recordHit } from "@/lib/rateLimit";
-import { LOGIN_EMAIL_BUCKET, RATE_LIMITED_CODE_PREFIX, loginRules } from "@/lib/authLimits";
+import {
+  EMAIL_NOT_VERIFIED_CODE,
+  LOGIN_EMAIL_BUCKET,
+  RATE_LIMITED_CODE_PREFIX,
+  loginRules,
+} from "@/lib/authLimits";
+import { findUserByEmail } from "@/lib/accountEmail";
 
 const credentialsSchema = z.object({
   email: z.string().email(),
@@ -22,6 +28,15 @@ class RateLimitedSignin extends CredentialsSignin {
     super();
     this.code = `${RATE_LIMITED_CODE_PREFIX}${minutes}`;
   }
+}
+
+/**
+ * Thrown when the password was right but the account's email was never
+ * confirmed. Only reachable with the correct password, so it can't be used to
+ * discover which addresses have accounts.
+ */
+class EmailNotVerifiedSignin extends CredentialsSignin {
+  code = EMAIL_NOT_VERIFIED_CODE;
 }
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
@@ -51,7 +66,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           if (state.limited) throw new RateLimitedSignin(minutesUntil(state.retryAfterMs));
         }
 
-        const user = await prisma.user.findUnique({ where: { email } });
+        const user = await findUserByEmail(email);
         const passwordMatches = user ? await bcrypt.compare(password, user.passwordHash) : false;
         if (!user || !passwordMatches) {
           await Promise.all(rules.map((rule) => recordHit(rule.bucket, rule.key)));
@@ -60,6 +75,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         // A correct password starts the email's count over (the IP's keeps ticking).
         await clearHits(LOGIN_EMAIL_BUCKET, emailKey);
+
+        // The account isn't active until the emailed link has been clicked.
+        if (!user.emailVerifiedAt) throw new EmailNotVerifiedSignin();
+
         return { id: user.id, email: user.email, name: user.displayName };
       },
     }),

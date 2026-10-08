@@ -12,6 +12,7 @@ import {
   loginRules,
 } from "@/lib/authLimits";
 import { findUserByEmail } from "@/lib/accountEmail";
+import { consumeToken } from "@/lib/emailTokens";
 
 const credentialsSchema = z.object({
   email: z.string().email(),
@@ -45,6 +46,21 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     signIn: "/login",
   },
   providers: [
+    // "Log in to my account" on the email-confirmed page: swaps the one-time ticket the
+    // confirmation just issued for a session, so the password isn't asked for twice.
+    Credentials({
+      id: "autologin",
+      credentials: { token: { label: "Ticket", type: "text" } },
+      async authorize(rawCredentials) {
+        const token = typeof rawCredentials?.token === "string" ? rawCredentials.token : null;
+        if (!token) return null;
+        const userId = await consumeToken(token, "AUTO_LOGIN");
+        if (!userId) return null;
+        const user = await prisma.user.findUnique({ where: { id: userId } });
+        if (!user?.emailVerifiedAt) return null;
+        return { id: user.id, email: user.email, name: user.displayName };
+      },
+    }),
     Credentials({
       credentials: {
         email: { label: "Email", type: "email" },

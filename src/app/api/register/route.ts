@@ -7,9 +7,10 @@ import { clientIp, hashKey } from "@/lib/clientIp";
 import { checkRateLimit, minutesUntil, recordHit } from "@/lib/rateLimit";
 import { signupRule } from "@/lib/authLimits";
 import { checkEmailDomain, emailDomainMessage } from "@/lib/emailDomain";
+import { findUserByEmail, limitAccountEmails, sendVerification } from "@/lib/accountEmail";
 
 const registerSchema = z.object({
-  email: z.string().email(),
+  email: z.string().trim().toLowerCase().email(),
   password: z.string().min(8, "Password must be at least 8 characters"),
   displayName: displayNameSchema,
   // The signup form's consent box (age and the terms and privacy policy). The
@@ -18,6 +19,10 @@ const registerSchema = z.object({
     error: "Please confirm your age and accept the Terms of Use and Privacy Policy.",
   }),
 });
+
+const EMAIL_FAILED = {
+  error: "We couldn't send the confirmation email. Please check the address and try again in a moment.",
+};
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
@@ -58,20 +63,53 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: emailDomainMessage(domainCheck.reason) }, { status: 400 });
   }
 
-  const existing = await prisma.user.findUnique({ where: { email } });
-  if (existing) {
+  const existing = await findUserByEmail(email);
+
+  // A confirmed account already owns this address: say so, and the form sends
+  // the person to log in (or reset their password) instead.
+  if (existing?.emailVerifiedAt) {
     return NextResponse.json(
-      { error: "An account with that email already exists" },
+      { error: "An account with that email already exists. Please log in instead.", code: "account_exists" },
       { status: 409 },
     );
   }
 
   const passwordHash = await bcrypt.hash(password, 12);
 
+  // The address is signed up but never confirmed (they closed the tab, or the
+  // email got lost): treat this as a fresh attempt. The newest submission's
+  // password and name replace the old ones, and a new link is sent; nothing
+  // is usable until someone with access to the inbox clicks it.
+  if (existing) {
+    const limited = await limitAccountEmails(request, email, "verify");
+    if (limited) return limited;
+    const user = await prisma.user.update({
+      where: { id: existing.id },
+      data: { passwordHash, displayName },
+      select: { id: true, email: true, displayName: true },
+    });
+    try {
+      await sendVerification(user);
+    } catch (error) {
+      console.error("Could not send confirmation email", error);
+      return NextResponse.json(EMAIL_FAILED, { status: 502 });
+    }
+    return NextResponse.json({ pendingVerification: true }, { status: 201 });
+  }
+
   const user = await prisma.user.create({
     data: { email, passwordHash, displayName },
     select: { id: true, email: true, displayName: true },
   });
 
-  return NextResponse.json({ user }, { status: 201 });
+  try {
+    await sendVerification(user);
+  } catch (error) {
+    // No way to confirm means no usable account: undo it so they can try again.
+    console.error("Could not send confirmation email", error);
+    await prisma.user.delete({ where: { id: user.id } });
+    return NextResponse.json(EMAIL_FAILED, { status: 502 });
+  }
+
+  return NextResponse.json({ pendingVerification: true }, { status: 201 });
 }

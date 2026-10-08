@@ -84,3 +84,35 @@ export function parseRateLimitedCode(code: string | null | undefined): number | 
   const minutes = Number(code.slice(RATE_LIMITED_CODE_PREFIX.length));
   return Number.isInteger(minutes) && minutes > 0 ? minutes : null;
 }
+
+/**
+ * Allowance for requests that make us send an account email (confirmation
+ * resend, password reset), so a script can't use them to flood someone's
+ * inbox or burn our sending quota. Per address (the victim's inbox) and per
+ * IP (one machine trying many addresses). Every request that gets past
+ * validation counts, whether or not an account exists for the address, and
+ * the answer never says which, so this can't be used to probe for accounts.
+ */
+export const EMAILS_PER_ADDRESS = 3;
+export const EMAILS_PER_IP = 10;
+export const EMAIL_SEND_WINDOW_MS = 60 * MINUTE;
+
+export type AccountEmailKind = "verify" | "reset";
+
+export function emailSendRules(kind: AccountEmailKind, emailKey: string, ipKey: string | null): RateLimitRule[] {
+  const rules: RateLimitRule[] = [
+    { bucket: `email-send:${kind}:address`, key: emailKey, limit: EMAILS_PER_ADDRESS, windowMs: EMAIL_SEND_WINDOW_MS },
+  ];
+  if (ipKey) {
+    rules.push({
+      bucket: `email-send:${kind}:ip`,
+      key: ipKey,
+      limit: EMAILS_PER_IP,
+      windowMs: EMAIL_SEND_WINDOW_MS,
+    });
+  }
+  return rules;
+}
+
+/** Error code the login form looks for when the password was right but the email isn't confirmed yet. */
+export const EMAIL_NOT_VERIFIED_CODE = "email_not_verified";

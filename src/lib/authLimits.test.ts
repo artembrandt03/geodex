@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   LOGIN_EMAIL_BUCKET,
   LOGIN_IP_BUCKET,
+  emailSendRules,
+  EMAILS_PER_ADDRESS,
   loginRules,
   PASSWORD_CHECK_BUCKET,
   SIGNUP_IP_BUCKET,
@@ -62,5 +64,22 @@ describe("signup and password-check rules", () => {
     const rule = passwordCheckRule("user-hash");
     expect(rule).toMatchObject({ bucket: PASSWORD_CHECK_BUCKET, key: "user-hash", limit: 5 });
     expect(rule.limit).toBe(loginRules("x", null)[0].limit);
+  });
+});
+
+describe("emailSendRules", () => {
+  it("limits per address and per IP, in separate buckets per kind", () => {
+    const verify = emailSendRules("verify", "emailhash", "iphash");
+    expect(verify).toHaveLength(2);
+    expect(verify[0]).toMatchObject({ key: "emailhash", limit: EMAILS_PER_ADDRESS });
+    expect(verify[1]).toMatchObject({ key: "iphash" });
+
+    // Confirmation resends and password resets don't eat each other's allowance.
+    const reset = emailSendRules("reset", "emailhash", "iphash");
+    expect(reset.map((r) => r.bucket)).not.toEqual(verify.map((r) => r.bucket));
+  });
+
+  it("skips the IP rule when no IP is known", () => {
+    expect(emailSendRules("reset", "emailhash", null)).toHaveLength(1);
   });
 });

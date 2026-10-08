@@ -3,7 +3,7 @@
  * pages (and anything that links to them) can't drift apart. Update the date
  * whenever either document changes in a way that matters.
  */
-export const LEGAL_UPDATED = "October 7, 2026";
+export const LEGAL_UPDATED = "October 8, 2026";
 
 /** Who runs Geodex and is the person responsible for protecting personal information (Quebec Law 25). */
 export const OPERATOR_NAME = "Artem Brandt";

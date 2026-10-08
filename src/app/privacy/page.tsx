@@ -41,7 +41,12 @@ export default function PrivacyPage() {
             <strong>Your account</strong> (only if you sign up): your email address, your password,
             your display name, and when the account was created. The email is how you log in. Your
             password is stored only as a one-way hash, so nobody, including me, can read it. The
-            display name is what other players see.
+            display name is what other players see. We email you a link to confirm that the address is
+            yours, and one if you ask to reset your password; until you confirm, the account can&apos;t
+            be used. We keep a scrambled copy of each link until it is used or expires (one hour for a
+            password reset, a day for a confirmation) and then delete it. An account whose email is
+            never confirmed is kept until it is confirmed, replaced by a new signup with the same
+            address, or you ask me to delete it.
           </li>
           <li>
             <strong>Your game results</strong> (only while signed in): for each finished round, the
@@ -61,7 +66,8 @@ export default function PrivacyPage() {
           </li>
           <li>
             <strong>Abuse prevention</strong>: to slow down password guessing, fake signups and spam,
-            failed logins, signup attempts and feedback submissions are counted against a scrambled
+            failed logins, signup attempts, confirmation and password reset requests, and feedback
+            submissions are counted against a scrambled
             (hashed) form of your IP address or email. The app does not store your raw IP address.
             These counters are short-lived.
           </li>
@@ -108,7 +114,10 @@ export default function PrivacyPage() {
         <LegalList>
           <li>a hosting provider (Netlify) that serves the website;</li>
           <li>a database provider that stores accounts and results;</li>
-          <li>an email provider that delivers feedback emails to the developer.</li>
+          <li>
+            an email provider that delivers the confirmation and password reset emails we send you, and
+            feedback emails to the developer.
+          </li>
         </LegalList>
         <p>
           They may process or store information on servers outside Quebec and outside Canada, including
@@ -136,8 +145,8 @@ export default function PrivacyPage() {
 
       <LegalSection title="How we protect it">
         <p>
-          Passwords are hashed, connections to the site are encrypted, login and signup attempts are
-          rate limited, and access to the database is limited to the developer. No system is perfectly
+          Passwords are hashed, connections to the site are encrypted, login, signup and email requests
+          are rate limited, emailed links are single use and expire, and access to the database is limited to the developer. No system is perfectly
           secure. If an incident creates a risk of serious harm to you, we will tell you and the
           Commission d&apos;accès à l&apos;information du Québec as the law requires.
         </p>

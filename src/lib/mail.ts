@@ -52,3 +52,13 @@ export async function sendMail(message: OutgoingMail): Promise<void> {
 
   await transport.sendMail({ from: `"Geodex" <${config.from}>`, ...message });
 }
+
+/** For putting user-supplied text into an HTML email. */
+export function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}

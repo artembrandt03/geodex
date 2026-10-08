@@ -1,6 +1,6 @@
 import type { FeedbackKindValue, ImageType } from "./feedback";
 import { IMAGE_EXTENSIONS } from "./feedback";
-import { getSmtpConfig, sendMail } from "./mail";
+import { escapeHtml, getSmtpConfig, sendMail } from "./mail";
 
 export interface FeedbackEmailInput {
   id: string;
@@ -19,15 +19,6 @@ const KIND_LABEL: Record<FeedbackKindValue, string> = {
   BUG: "Bug report",
   FEEDBACK: "Feedback",
 };
-
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
 
 /** Pure: turns a submission into the subject/text/html/attachments of an email. */
 export function buildFeedbackEmail(input: FeedbackEmailInput) {

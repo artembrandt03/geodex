@@ -1,14 +1,18 @@
 "use client";
 
 import { Suspense, useEffect, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { signIn } from "next-auth/react";
 import { AuthCard } from "@/components/auth/AuthCard";
 
-type State = { status: "working" } | { status: "done" } | { status: "failed"; message: string };
+type State = { status: "working" } | { status: "done"; loginToken: string | null } | { status: "failed"; message: string };
 
 function VerifyEmail() {
+  const router = useRouter();
   const token = useSearchParams().get("token");
+  const [loggingIn, setLoggingIn] = useState(false);
+  const [loginFailed, setLoginFailed] = useState(false);
   const [state, setState] = useState<State>(
     token ? { status: "working" } : { status: "failed", message: "This confirmation link isn't valid." },
   );
@@ -24,12 +28,31 @@ function VerifyEmail() {
       body: JSON.stringify({ token }),
     })
       .then(async (response) => {
-        if (response.ok) return setState({ status: "done" });
         const data = await response.json().catch(() => ({}));
+        if (response.ok) return setState({ status: "done", loginToken: data.loginToken ?? null });
         setState({ status: "failed", message: data.error ?? "Something went wrong." });
       })
       .catch(() => setState({ status: "failed", message: "Something went wrong. Please try again." }));
   }, [token]);
+
+  // The ticket from the confirmation stands in for the password, once, for a few minutes.
+  async function logIn(loginToken: string) {
+    setLoggingIn(true);
+    setLoginFailed(false);
+    try {
+      const result = await signIn("autologin", { token: loginToken, redirect: false });
+      if (result?.error) {
+        setLoginFailed(true);
+        return;
+      }
+      router.push("/setup");
+      router.refresh();
+    } catch {
+      setLoginFailed(true);
+    } finally {
+      setLoggingIn(false);
+    }
+  }
 
   return (
     <AuthCard>
@@ -46,12 +69,30 @@ function VerifyEmail() {
             <h1 className="font-display text-2xl font-bold">Email confirmed</h1>
             <p className="mt-2 text-sm text-muted">Your account is active. Log in to start playing.</p>
           </div>
-          <Link
-            href="/login?verified=1"
-            className="rounded-lg bg-primary px-4 py-2.5 text-center font-semibold text-primary-foreground"
-          >
-            Log in
-          </Link>
+          {state.loginToken && !loginFailed ? (
+            <button
+              type="button"
+              onClick={() => logIn(state.loginToken!)}
+              disabled={loggingIn}
+              className="rounded-lg bg-primary px-4 py-2.5 text-center font-semibold text-primary-foreground disabled:opacity-50"
+            >
+              {loggingIn ? "Logging in..." : "Log in to my account"}
+            </button>
+          ) : (
+            <>
+              {loginFailed && (
+                <p className="text-sm text-muted">
+                  That quick login has expired. Log in with your password instead.
+                </p>
+              )}
+              <Link
+                href="/login?verified=1"
+                className="rounded-lg bg-primary px-4 py-2.5 text-center font-semibold text-primary-foreground"
+              >
+                Log in
+              </Link>
+            </>
+          )}
         </>
       )}
 

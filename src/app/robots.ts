@@ -19,7 +19,7 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: "*",
       allow: "/",
-      disallow: ["/api/", "/profile", "/players/", "/login", "/register", "/play"],
+      disallow: ["/api/", "/profile", "/players/", "/login", "/register", "/play", "/verify-email", "/forgot-password", "/reset-password"],
     },
     sitemap: `${siteUrl()}/sitemap.xml`,
   };

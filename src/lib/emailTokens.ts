@@ -11,6 +11,8 @@ export const TOKEN_TTL_MS: Record<EmailTokenKind, number> = {
   VERIFY_EMAIL: 24 * HOUR,
   // Shorter, since a reset link is a way into the account.
   RESET_PASSWORD: 1 * HOUR,
+  // Only has to outlast the moment between landing on the success page and clicking its button.
+  AUTO_LOGIN: 10 * 60 * 1000,
 };
 
 /** A fresh link token for a user, replacing any earlier one of the same kind (only the newest email works). */

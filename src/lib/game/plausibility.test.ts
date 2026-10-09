@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  MAX_MS_PER_QUESTION,
   MIN_MS_PER_QUESTION,
   checkRoundPlausible,
   maxStreakBonus,
@@ -93,6 +94,15 @@ describe("checkRoundPlausible", () => {
     );
     expect(verdict.ok).toBe(false);
     if (!verdict.ok) expect(verdict.reason).toMatch(/under the minimum/);
+  });
+
+  it("rejects a round that took longer than the inactivity rule allows", () => {
+    // 10 questions can't have taken 11 minutes when each ends the round after a minute.
+    const verdict = checkRoundPlausible(claim({ totalTimeMs: 11 * 60_000 }));
+    expect(verdict.ok).toBe(false);
+    if (!verdict.ok) expect(verdict.reason).toMatch(/over the maximum/);
+    // ...but every question using nearly its whole minute is fine.
+    expect(checkRoundPlausible(claim({ totalTimeMs: 10 * MAX_MS_PER_QUESTION })).ok).toBe(true);
   });
 
   it("holds shape mode to a slower floor than name mode", () => {

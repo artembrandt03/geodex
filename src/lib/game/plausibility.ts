@@ -5,6 +5,7 @@ import {
   STREAK_BONUS_THRESHOLD,
   streakBonusFor,
 } from "./scoring";
+import { INACTIVITY_LIMIT_MS } from "./antiCheat";
 import type { Difficulty, GameMode } from "@/generated/prisma/client";
 
 /**
@@ -40,6 +41,13 @@ export const MIN_MS_PER_QUESTION: Record<GameMode, number> = {
   NAME: 500,
   SHAPE: 800,
 };
+
+/**
+ * The most time one question can take: the client ends the round when one is
+ * left open for INACTIVITY_LIMIT_MS, so a finished round can't contain a longer
+ * one. A few seconds of slack cover a click landing just as the limit hits.
+ */
+export const MAX_MS_PER_QUESTION = INACTIVITY_LIMIT_MS + 5_000;
 
 /** Total streak bonus earned by one unbroken run of this many correct answers. */
 function runBonus(length: number): number {
@@ -103,6 +111,9 @@ export function checkRoundPlausible(claim: RoundClaim): RoundVerdict {
 
   const minTime = roundLength * MIN_MS_PER_QUESTION[claim.mode];
   if (totalTimeMs < minTime) return fail(`time ${totalTimeMs}ms under the minimum ${minTime}ms`);
+
+  const maxTime = roundLength * MAX_MS_PER_QUESTION;
+  if (totalTimeMs > maxTime) return fail(`time ${totalTimeMs}ms over the maximum ${maxTime}ms`);
 
   return { ok: true };
 }

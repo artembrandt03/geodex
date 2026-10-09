@@ -104,20 +104,21 @@ function Leaderboard() {
 
   return (
     <div className="relative h-full w-full overflow-hidden">
-      <div className="relative z-10 flex h-full items-start justify-center overflow-y-auto px-4 py-10">
+      <div className="relative z-10 flex h-full items-start justify-center overflow-y-auto px-3 py-6 sm:px-4 sm:py-10">
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
-          className="flex w-full max-w-2xl flex-col gap-6 rounded-2xl border border-border bg-surface/80 p-8 shadow-2xl backdrop-blur-md"
+          className="flex w-full max-w-2xl flex-col gap-4 rounded-2xl border border-border bg-surface/80 p-4 shadow-2xl backdrop-blur-md sm:gap-6 sm:p-8"
         >
-          <h1 className="font-display text-3xl font-bold">Leaderboard</h1>
+          <h1 className="font-display text-2xl font-bold sm:text-3xl">Leaderboard</h1>
 
-          <div className="flex flex-wrap gap-3">
+          {/* Mode on its own row on phones, difficulty and length sharing the next. */}
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:gap-3">
             <select
               value={mode}
               onChange={(e) => setMode(e.target.value as typeof mode)}
-              className={selectClass}
+              className={`${selectClass} col-span-2 sm:col-auto`}
             >
               {MODES.map((m) => (
                 <option key={m.value} value={m.value}>
@@ -157,14 +158,15 @@ function Leaderboard() {
             </p>
           )}
 
-          <div className="overflow-hidden rounded-2xl border border-border bg-surface-2/60">
-            <table className="w-full text-left">
+          {/* Scrolls sideways if a very narrow screen still can't fit every column. */}
+          <div className="overflow-x-auto rounded-2xl border border-border bg-surface-2/60">
+            <table className="w-full min-w-[17rem] text-left text-sm sm:text-base">
               <thead>
                 <tr className="border-b border-border text-xs uppercase tracking-wide text-muted">
-                  <th className="w-20 px-4 py-3 font-medium">#</th>
-                  <th className="px-4 py-3 font-medium">Player</th>
-                  <th className="px-4 py-3 font-medium">Score</th>
-                  <th className="px-4 py-3 font-medium">Correct</th>
+                  <th className="w-12 px-2 py-3 font-medium sm:w-20 sm:px-4">#</th>
+                  <th className="px-2 py-3 font-medium sm:px-4">Player</th>
+                  <th className="px-2 py-3 font-medium sm:px-4">Score</th>
+                  <th className="px-2 py-3 font-medium sm:px-4">Correct</th>
                 </tr>
               </thead>
               <tbody>
@@ -183,13 +185,13 @@ function Leaderboard() {
                       transition={{ delay: i * 0.05 }}
                       className={rowClass}
                     >
-                      <td className="px-4 py-3">
+                      <td className="px-2 py-2.5 sm:px-4 sm:py-3">
                         <RankCell rank={rank} podium={podium} filled={Boolean(entry)} />
                       </td>
                       {entry ? (
                         <>
                           <td
-                            className={`px-4 py-3 ${podium ? "font-semibold" : ""}`}
+                            className={`max-w-[8rem] truncate px-2 py-2.5 sm:max-w-none sm:px-4 sm:py-3 ${podium ? "font-semibold" : ""}`}
                           >
                             {entry.profilePublic ? (
                               <Link
@@ -204,16 +206,16 @@ function Leaderboard() {
                             )}
                           </td>
                           <td
-                            className={`px-4 py-3 font-semibold text-primary ${
-                              podium ? "text-lg" : ""
+                            className={`px-2 py-2.5 font-semibold text-primary sm:px-4 sm:py-3 ${
+                              podium ? "text-base sm:text-lg" : ""
                             }`}
                           >
                             {entry.score}
                           </td>
-                          <td className="px-4 py-3 text-muted">{entry.correct}</td>
+                          <td className="px-2 py-2.5 text-muted sm:px-4 sm:py-3">{entry.correct}</td>
                         </>
                       ) : (
-                        <td colSpan={3} className="px-4 py-3">
+                        <td colSpan={3} className="px-2 py-2.5 sm:px-4 sm:py-3">
                           {current ? (
                             <span className="italic text-muted-2">
                               Waiting for someone to claim this spot!
@@ -273,7 +275,7 @@ function RankCell({
           width={44}
           height={40}
           unoptimized
-          className={filled ? "drop-shadow" : "opacity-35 grayscale"}
+          className={`h-8 w-auto sm:h-10 ${filled ? "drop-shadow" : "opacity-35 grayscale"}`}
         />
       </motion.span>
       <span className="sr-only">{`#${rank}`}</span>

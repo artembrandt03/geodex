@@ -5,9 +5,11 @@ import { useSession } from "next-auth/react";
 import { scoreAnswer } from "./scoring";
 import { isNeighbor, type NeighborMap } from "./neighbors";
 import { totalTimeMs } from "./time";
+import { msUntilInactive, type RoundEndReason } from "./antiCheat";
 import type { QuestionOutcome, RoundConfig, RoundQuestion } from "./types";
 
-export type RoundStatus = "loading" | "playing" | "revealing" | "finished" | "error";
+/** "ended" is a round stopped early (see antiCheat.ts): it keeps what was answered but is never saved. */
+export type RoundStatus = "loading" | "playing" | "revealing" | "finished" | "ended" | "error";
 
 export interface RoundState {
   status: RoundStatus;
@@ -26,6 +28,8 @@ export interface RoundState {
   /** Set briefly after a guess, before advancing to the next question. */
   lastOutcome: QuestionOutcome | null;
   errorMessage: string | null;
+  /** Why the round was ended early; set only when status is "ended". */
+  endReason: RoundEndReason | null;
   /** Persisted to the leaderboard? Only true once /api/rounds/complete succeeds. */
   saved: boolean;
   /** 1-based place on the leaderboard if this round made the top 5, once saved. */
@@ -47,6 +51,7 @@ const INITIAL_STATE: RoundState = {
   questionStartedAt: null,
   lastOutcome: null,
   errorMessage: null,
+  endReason: null,
   saved: false,
   leaderboardRank: null,
   roundToken: null,
@@ -171,6 +176,40 @@ export function useRound(config: RoundConfig | null) {
       };
     });
   }, []);
+
+  // Stops a round early. Only a round with a question open can be stopped: once
+  // it's finished or showing a reveal there's nothing to cheat on or idle through.
+  const endRound = useCallback((reason: RoundEndReason) => {
+    setState((s) =>
+      s.status !== "playing"
+        ? s
+        : { ...s, status: "ended", endReason: reason, questionStartedAt: null, lastOutcome: null },
+    );
+  }, []);
+
+  // A question left open for a minute ends the round. The timer is measured from
+  // when the question was shown, so it starts over for each one.
+  const startedAt = state.questionStartedAt;
+  useEffect(() => {
+    if (state.status !== "playing" || startedAt === null) return;
+    const id = window.setTimeout(
+      () => endRound("inactive"),
+      msUntilInactive(startedAt, Date.now()),
+    );
+    return () => window.clearTimeout(id);
+  }, [state.status, startedAt, endRound]);
+
+  // Switching tabs (or minimizing the window) while a question is open ends the
+  // round, since that's how an answer gets looked up. Only the *change* to hidden
+  // counts, so a page that merely loaded in the background doesn't end anything.
+  useEffect(() => {
+    if (state.status !== "playing") return;
+    function onVisibilityChange() {
+      if (document.visibilityState === "hidden") endRound("left_tab");
+    }
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", onVisibilityChange);
+  }, [state.status, endRound]);
 
   // Persist the finished round for signed-in users.
   useEffect(() => {

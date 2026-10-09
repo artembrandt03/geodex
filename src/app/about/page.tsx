@@ -11,8 +11,7 @@ export const metadata: Metadata = {
 /*
  * Wide screens (xl+): three columns -- About me on the left, the project in
  * the middle (given the most room), News on the right. Below that it falls
- * back to a single column. DOM order is the mobile reading order: me,
- * project, news.
+ * back to a single column, where News moves to the top (order-first).
  */
 export default async function AboutPage({
   searchParams,
@@ -30,7 +29,11 @@ export default async function AboutPage({
           <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)_minmax(0,1fr)] xl:items-start">
             <AboutMeWindow />
             <ProjectWindow />
-            <NewsWindow initialOpen={updates === "open"} />
+            {/* First on phones and tablets (the news is what a returning visitor
+                wants), back in its right-hand column on wide screens. */}
+            <div className="order-first xl:order-none">
+              <NewsWindow initialOpen={updates === "open"} />
+            </div>
           </div>
           <LegalLinks className="pb-2" />
         </div>

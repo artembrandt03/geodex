@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import { useSession, signOut } from "next-auth/react";
 import { useNavVisibility } from "@/components/providers/NavVisibilityProvider";
 import { useRoundGuard } from "@/components/providers/RoundGuardProvider";
+import { MobileNavMenu } from "@/components/layout/MobileNavMenu";
 
 export function NavBar() {
   const { data: session, status } = useSession();
@@ -31,7 +32,7 @@ export function NavBar() {
     <header className="pointer-events-auto relative z-20 border-b border-border bg-surface/70 backdrop-blur-md">
       {/* Three equal-weight columns so the middle link is truly centered, not
           merely between two sides of different widths. */}
-      <nav className="mx-auto grid max-w-5xl grid-cols-[1fr_auto_1fr] items-center px-4 py-3">
+      <nav className="mx-auto hidden max-w-5xl grid-cols-[1fr_auto_1fr] items-center px-4 py-3 sm:grid">
         <div className="flex items-center justify-self-start gap-2 sm:gap-5">
           {/* Back to the cosmos title screen ("/"). The tooltip is plain CSS
               (hover or keyboard focus) so it needs no state; it drops below
@@ -74,8 +75,7 @@ export function NavBar() {
             >
               <Image src="/images/earth.png" alt="" width={24} height={24} />
             </motion.span>
-            {/* Wordmark hidden on phones so the Leaderboard sign keeps its width. */}
-            <span className="hidden sm:inline">Geodex</span>
+            <span>Geodex</span>
           </Link>
 
           <Link
@@ -102,7 +102,7 @@ export function NavBar() {
           </Link>
         </div>
 
-        <div className="flex items-center gap-2 justify-self-end text-sm sm:gap-5">
+        <div className="flex items-center gap-5 justify-self-end text-sm">
           {status === "loading" ? null : session?.user ? (
             <div className="flex items-center gap-3">
               {/* The name is the way to the profile page, so it's styled as a
@@ -126,8 +126,7 @@ export function NavBar() {
                     className="object-contain p-0.5"
                   />
                 </span>
-                {/* Avatar only on phones: the header can't fit a name too. */}
-                <span className="hidden max-w-32 truncate font-medium sm:inline">{session.user.name}</span>
+                <span className="max-w-32 truncate font-medium">{session.user.name}</span>
                 <svg
                   viewBox="0 0 20 20"
                   fill="none"
@@ -177,6 +176,40 @@ export function NavBar() {
             </div>
           )}
         </div>
+      </nav>
+
+      {/* Phones: just the back arrow and the globe, with everything else in a menu. */}
+      <nav className="relative mx-auto flex max-w-5xl items-center justify-between px-4 py-3 sm:hidden">
+        <div className="flex items-center gap-2">
+          <Link
+            href="/"
+            onClick={goTo("/")}
+            aria-label="Back to title screen"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border-strong text-muted"
+          >
+            <svg
+              viewBox="0 0 20 20"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2.2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden
+              className="h-4 w-4"
+            >
+              <path d="M12 4l-6 6 6 6" />
+            </svg>
+          </Link>
+          <Link href="/setup" onClick={goTo("/setup")} aria-label="Geodex, choose a game" className="flex items-center">
+            <Image src="/images/earth.png" alt="" width={28} height={28} />
+          </Link>
+        </div>
+        <MobileNavMenu
+          pathname={pathname}
+          userName={status === "loading" ? undefined : (session?.user?.name ?? null)}
+          go={(href) => guardedAction(() => router.push(href))}
+          signOut={() => guardedAction(() => signOut({ callbackUrl: "/" }))}
+        />
       </nav>
     </header>
   );

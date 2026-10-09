@@ -289,12 +289,16 @@ export function SetupScene() {
               {session?.user ? "Start game" : "Play as guest"}
             </motion.button>
 
-            {!session?.user && (
-              <p className="-mt-6 text-center text-sm text-muted">
-                Playing as a guest. Your score won&apos;t be saved to the
-                leaderboard.
+            <div className="-mt-6 flex flex-col gap-1 text-center text-sm text-muted">
+              {!session?.user && (
+                <p>Playing as a guest. Your score won&apos;t be saved to the leaderboard.</p>
+              )}
+              {/* The rules from lib/game/antiCheat.ts, said up front so an ended round is never a surprise. */}
+              <p>
+                Stay on this tab while you play: switching away, or leaving a question
+                unanswered for 60 seconds, ends the round.
               </p>
-            )}
+            </div>
           </motion.div>
 
           <SetupSideWindows />

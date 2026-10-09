@@ -10,6 +10,8 @@ import { useBackdropExit, useSharedGameMap } from "@/components/providers/Shared
 import { useRoundGuard } from "@/components/providers/RoundGuardProvider";
 import type { WorldMapProps } from "@/components/game/WorldMap";
 import { AnswerBanner } from "@/components/game/AnswerBanner";
+import { EndedRound } from "@/components/game/EndedRound";
+import { InactivityWarning } from "@/components/game/InactivityWarning";
 import { RoundStopwatch } from "@/components/game/RoundStopwatch";
 import { RoundSummary } from "@/components/game/RoundSummary";
 import { StreakBadge } from "@/components/game/StreakBadge";
@@ -279,6 +281,8 @@ function ActiveRound({
     setGuessInput("");
   }
 
+  // Over, one way or the other: no question is open any more.
+  const roundOver = state.status === "finished" || state.status === "ended";
   const progress = state.status === "finished" ? 1 : state.currentIndex / config.roundLength;
 
   return (
@@ -297,7 +301,9 @@ function ActiveRound({
           <span className="text-xs font-medium uppercase tracking-wide text-muted">
             {state.status === "finished"
               ? "Complete"
-              : `Question ${state.currentIndex + 1} / ${config.roundLength}`}
+              : state.status === "ended"
+                ? "Round ended"
+                : `Question ${state.currentIndex + 1} / ${config.roundLength}`}
           </span>
           <div className="h-1.5 w-40 overflow-hidden rounded-full bg-surface-2">
             <motion.div
@@ -313,7 +319,7 @@ function ActiveRound({
             running={state.status === "playing"}
           />
         </div>
-        {state.status !== "finished" && <StreakBadge streak={state.streak} />}
+        {!roundOver && <StreakBadge streak={state.streak} />}
         </div>
 
         <div className="pointer-events-auto rounded-xl border border-border bg-surface/85 px-4 py-2 text-right shadow-lg backdrop-blur-md">
@@ -355,6 +361,22 @@ function ActiveRound({
             onPlayAgain={onPlayAgain}
           />
         </motion.div>
+      ) : state.status === "ended" && state.endReason ? (
+        <motion.div
+          key="ended"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="pointer-events-auto absolute inset-0 flex items-center justify-center bg-background/60 backdrop-blur-sm"
+        >
+          <EndedRound
+            reason={state.endReason}
+            answered={state.outcomes.length}
+            roundLength={config.roundLength}
+            totalScore={state.totalScore}
+            signedIn={Boolean(session?.user)}
+            onPlayAgain={onPlayAgain}
+          />
+        </motion.div>
       ) : (
         <motion.div
           key={`prompt-${state.currentIndex}`}
@@ -376,6 +398,7 @@ function ActiveRound({
                 Which country is highlighted?
               </p>
             )}
+            <InactivityWarning startedAt={state.questionStartedAt} active={state.status === "playing"} />
             {/* In NAME mode only after guessing: zooming to the target beforehand
                 would narrow down its location for free, since the map isn't
                 otherwise showing where it is. In SHAPE mode the target is
@@ -423,7 +446,7 @@ function ActiveRound({
           </motion.div>
         )}
 
-        {config.mode === "SHAPE" && state.status !== "finished" && !isRevealing && (
+        {config.mode === "SHAPE" && !roundOver && !isRevealing && (
           <form
             onSubmit={handleShapeSubmit}
             className="pointer-events-auto flex gap-2 rounded-xl border border-border bg-surface/85 p-2 shadow-xl backdrop-blur-md"

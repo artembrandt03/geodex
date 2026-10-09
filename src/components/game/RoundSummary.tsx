@@ -61,7 +61,7 @@ export function RoundSummary(props: RoundSummaryProps) {
       initial={{ opacity: 0, scale: 0.94, y: 14 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       transition={{ type: "spring", stiffness: 240, damping: 22 }}
-      className="relative mx-4 flex max-h-[calc(100vh-6rem)] w-[min(56rem,calc(100vw-2rem))] flex-col gap-4 overflow-y-auto rounded-2xl border border-border bg-surface px-6 py-5 shadow-2xl sm:px-10"
+      className="relative mx-3 flex max-h-[calc(100dvh-6rem)] w-[min(56rem,calc(100vw-1.5rem))] flex-col gap-4 overflow-y-auto rounded-2xl border border-border bg-surface px-4 py-4 shadow-2xl sm:mx-4 sm:px-10 sm:py-5"
     >
       {(leaderboardRank !== null || accuracy >= 0.8) && (
         <Confetti pieces={leaderboardRank !== null && leaderboardRank <= 3 ? 44 : 22} />
@@ -78,7 +78,9 @@ export function RoundSummary(props: RoundSummaryProps) {
       {leaderboardRank !== null && <LeaderboardHype rank={leaderboardRank} boardLabel={boardLabel} />}
 
       {/* Score and stats beside the points history on wider screens, stacked on phones. */}
-      <div className="flex min-h-0 flex-1 flex-col gap-4 md:flex-row">
+      {/* On phones the whole card scrolls and these sections take their natural height;
+          from md up, the points list scrolls on its own beside the stats. */}
+      <div className="flex shrink-0 flex-col gap-4 md:min-h-0 md:flex-1 md:shrink md:flex-row">
       <div className="flex shrink-0 flex-col gap-4 md:w-64 md:justify-center">
       <div className="flex shrink-0 flex-col items-center">
         <span className="text-xs font-medium uppercase tracking-widest text-muted">Total score</span>
@@ -109,11 +111,11 @@ export function RoundSummary(props: RoundSummaryProps) {
       </dl>
       </div>
 
-      <section aria-labelledby="points-history" className="flex min-h-[12rem] min-w-0 flex-1 flex-col gap-2">
+      <section aria-labelledby="points-history" className="flex min-w-0 shrink-0 flex-col gap-2 md:min-h-[12rem] md:flex-1 md:shrink">
         <h2 id="points-history" className="font-display text-lg font-semibold">
           Points history
         </h2>
-        <ol className="flex min-h-0 flex-1 flex-col divide-y divide-border/70 overflow-y-auto rounded-xl border border-border bg-surface-2/50">
+        <ol className="flex flex-col divide-y divide-border/70 rounded-xl border border-border bg-surface-2/50 md:min-h-0 md:flex-1 md:overflow-y-auto">
           {outcomes.map((outcome, i) => {
             const guessed = outcome.guessedCode ? (countryNames.get(outcome.guessedCode) ?? null) : null;
             return (
@@ -173,24 +175,24 @@ export function RoundSummary(props: RoundSummaryProps) {
           </p>
         )}
 
-        <div className="flex flex-wrap justify-center gap-3">
+        <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:justify-center sm:gap-3">
           <motion.button
             onClick={onPlayAgain}
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}
-            className="rounded-lg bg-primary px-5 py-2.5 font-semibold text-primary-foreground"
+            className="col-span-2 rounded-lg bg-primary px-5 py-2.5 font-semibold text-primary-foreground"
           >
             Play again
           </motion.button>
           <Link
             href={`/leaderboard?mode=${config.mode}&difficulty=${config.difficulty}&roundLength=${config.roundLength}`}
-            className="rounded-lg border border-border-strong px-5 py-2.5 font-medium transition-colors hover:bg-surface-2"
+            className="rounded-lg border border-border-strong px-5 py-2.5 text-center font-medium transition-colors hover:bg-surface-2"
           >
             Leaderboard
           </Link>
           <Link
             href="/setup"
-            className="rounded-lg border border-border-strong px-5 py-2.5 font-medium transition-colors hover:bg-surface-2"
+            className="rounded-lg border border-border-strong px-5 py-2.5 text-center font-medium transition-colors hover:bg-surface-2"
           >
             Home
           </Link>

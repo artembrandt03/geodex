@@ -131,11 +131,7 @@ export function MobileNavMenu({ pathname, userName, go, signOut }: MobileNavMenu
                 <Link href="/login" onClick={item("/login")} className={linkClass("/login")}>
                   Log in
                 </Link>
-                <Link
-                  href="/register"
-                  onClick={item("/register")}
-                  className="rounded-lg bg-primary px-3 py-3 text-center font-semibold text-primary-foreground"
-                >
+                <Link href="/register" onClick={item("/register")} className={linkClass("/register")}>
                   Sign up
                 </Link>
               </>

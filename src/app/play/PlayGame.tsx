@@ -295,9 +295,9 @@ function ActiveRound({
     // overlay pieces that always floated above the map.
     <div className="pointer-events-none relative h-full w-full">
       {/* Top overlay: progress + score */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-4 p-4">
+      <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-2 p-3 sm:gap-4 sm:p-4">
         <div className="flex flex-col items-start gap-3">
-        <div className="pointer-events-auto flex flex-col gap-1.5 rounded-xl border border-border bg-surface/85 px-4 py-2 shadow-lg backdrop-blur-md">
+        <div className="pointer-events-auto flex flex-col gap-1.5 rounded-xl border border-border bg-surface/85 px-3 py-1.5 shadow-lg backdrop-blur-md sm:px-4 sm:py-2">
           <span className="text-xs font-medium uppercase tracking-wide text-muted">
             {state.status === "finished"
               ? "Complete"
@@ -305,7 +305,7 @@ function ActiveRound({
                 ? "Round ended"
                 : `Question ${state.currentIndex + 1} / ${config.roundLength}`}
           </span>
-          <div className="h-1.5 w-40 overflow-hidden rounded-full bg-surface-2">
+          <div className="h-1.5 w-28 overflow-hidden rounded-full bg-surface-2 sm:w-40">
             <motion.div
               className="h-full rounded-full bg-primary"
               initial={false}
@@ -319,10 +319,23 @@ function ActiveRound({
             running={state.status === "playing"}
           />
         </div>
-        {!roundOver && <StreakBadge streak={state.streak} />}
+        {/* Under the question card on wide screens... */}
+        {!roundOver && (
+          <div className="hidden sm:block">
+            <StreakBadge streak={state.streak} />
+          </div>
+        )}
         </div>
 
-        <div className="pointer-events-auto rounded-xl border border-border bg-surface/85 px-4 py-2 text-right shadow-lg backdrop-blur-md">
+        {/* ...but on a phone it sits in the top row between the card and the score, so
+            the prompt card below never has to cover it. */}
+        {!roundOver && (
+          <div className="sm:hidden">
+            <StreakBadge streak={state.streak} />
+          </div>
+        )}
+
+        <div className="pointer-events-auto rounded-xl border border-border bg-surface/85 px-3 py-1.5 text-right shadow-lg backdrop-blur-md sm:px-4 sm:py-2">
           <span className="block text-xs font-medium uppercase tracking-wide text-muted">
             Score
           </span>
@@ -383,15 +396,15 @@ function ActiveRound({
           initial={{ opacity: 0, y: -12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
-          className="pointer-events-none absolute inset-x-0 top-20 flex justify-center px-4"
+          className="pointer-events-none absolute inset-x-0 top-[5.5rem] flex justify-center px-3 sm:top-20 sm:px-4"
         >
-          <div className="pointer-events-auto flex flex-col items-center gap-2 rounded-2xl border border-border bg-surface/85 px-6 py-3 text-center shadow-xl backdrop-blur-md">
+          <div className="pointer-events-auto flex flex-col items-center gap-2 rounded-2xl border border-border bg-surface/85 px-4 py-2 text-center shadow-xl backdrop-blur-md sm:px-6 sm:py-3">
             {config.mode === "NAME" ? (
               <>
                 <p className="text-xs font-medium uppercase tracking-wide text-muted">
                   Find this country
                 </p>
-                <p className="font-display text-2xl font-semibold">{current.name}</p>
+                <p className="font-display text-xl font-semibold sm:text-2xl">{current.name}</p>
               </>
             ) : (
               <p className="font-display text-xl font-semibold">
@@ -414,7 +427,7 @@ function ActiveRound({
       )}
 
       {/* Bottom overlay: shape-mode input, or feedback */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-6 flex flex-col items-center gap-3 px-4">
+      <div className="pointer-events-none absolute inset-x-0 bottom-4 flex flex-col items-center gap-3 px-4 sm:bottom-6">
         {/* Plain conditional render (see note above) rather than
             AnimatePresence, for the same exit-reliability reason. */}
         {isRevealing && state.lastOutcome && (
@@ -439,7 +452,8 @@ function ActiveRound({
               className="rounded-lg bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground shadow-lg shadow-black/20"
             >
               {state.currentIndex + 1 >= config.roundLength ? "See results" : "Next question"}
-              <kbd className="ml-2 rounded bg-white/25 px-1.5 py-0.5 font-sans text-[10px] font-medium">
+              {/* A keyboard hint: only where there's a mouse-like pointer, not on touch screens. */}
+              <kbd className="ml-2 hidden rounded bg-white/25 px-1.5 py-0.5 font-sans text-[10px] font-medium [@media(pointer:fine)]:inline">
                 Enter
               </kbd>
             </motion.button>
@@ -449,7 +463,7 @@ function ActiveRound({
         {config.mode === "SHAPE" && !roundOver && !isRevealing && (
           <form
             onSubmit={handleShapeSubmit}
-            className="pointer-events-auto flex gap-2 rounded-xl border border-border bg-surface/85 p-2 shadow-xl backdrop-blur-md"
+            className="pointer-events-auto flex w-full gap-2 rounded-xl border border-border bg-surface/85 p-2 shadow-xl backdrop-blur-md sm:w-auto"
           >
             <input
               list="country-names"
@@ -458,7 +472,7 @@ function ActiveRound({
               disabled={isRevealing}
               placeholder="Type a country name..."
               autoFocus
-              className="w-64 rounded-lg border border-transparent bg-surface-2 px-3 py-2 text-sm outline-none focus:border-primary sm:w-80"
+              className="w-full min-w-0 flex-1 rounded-lg border border-transparent bg-surface-2 px-3 py-2 text-sm outline-none focus:border-primary sm:w-80 sm:flex-none"
             />
             <datalist id="country-names">
               {countryNames.map((c) => (

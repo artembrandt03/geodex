@@ -35,10 +35,17 @@ const cardBase = "rounded-xl border p-4 text-left transition-colors duration-150
 const cardActive = "border-primary bg-primary/15";
 const cardInactive = "border-border-strong bg-surface-2/60 hover:bg-surface-2";
 
-function CheckBadge({ color }: { color: string }) {
+/**
+ * The "selected" tick. `corner` puts it on the card's corner instead of inside
+ * it, for the small round-length buttons where an inside badge would sit on
+ * top of the number.
+ */
+function CheckBadge({ color, corner = false }: { color: string; corner?: boolean }) {
   return (
     <span
-      className="absolute right-2 top-2 z-10 flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold text-primary-foreground"
+      className={`absolute z-10 flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold text-primary-foreground ${
+        corner ? "-right-1.5 -top-1.5" : "right-2 top-2"
+      }`}
       style={{ backgroundColor: color }}
     >
       ✓
@@ -272,7 +279,7 @@ export function SetupScene() {
                       roundLength === n ? cardActive : cardInactive
                     }`}
                   >
-                    {roundLength === n && <CheckBadge color="var(--primary)" />}
+                    {roundLength === n && <CheckBadge color="var(--primary)" corner />}
                     {n}
                   </motion.button>
                 ))}

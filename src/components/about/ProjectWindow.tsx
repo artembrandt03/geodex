@@ -16,7 +16,7 @@ const GITHUB_URL = "https://github.com/artembrandt03/geodex/tree/main";
 
 const HOW_TO_PLAY = [
   "Pick a mode, a difficulty and a round length.",
-  "Guess the country. You get one attempt each, and there's no time limit.",
+  "Guess the country. You get one attempt each. Stay on the game tab: switching away, or leaving a question unanswered for 60 seconds, ends the round.",
   "A correct answer earns base points: 10 on Easy, 20 on Medium and 30 on Hard.",
   "Answer quickly for a speed bonus: within 5 seconds doubles the base points, within 10 seconds adds half and within 15 adds a quarter. When you have to type the name, you get twice as long.",
   "Get three in a row right to start a streak bonus, which grows with every further correct answer.",

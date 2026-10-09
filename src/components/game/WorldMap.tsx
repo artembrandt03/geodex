@@ -545,8 +545,9 @@ export function WorldMap({
         </ZoomableGroup>
       </ComposableMap>
 
+      {/* The zoom buttons sit mid-right on phones, where nothing else floats (the prompt is above, the answer banner and input below), and bottom-right from sm up. */}
       {showZoomControls && (
-        <div className="absolute bottom-4 right-4 flex flex-col gap-2">
+        <div className="absolute right-3 top-1/2 flex -translate-y-1/2 flex-col gap-2 sm:bottom-4 sm:right-4 sm:top-auto sm:translate-y-0">
           <MapButton onClick={zoomIn} label="Zoom in">
             +
           </MapButton>

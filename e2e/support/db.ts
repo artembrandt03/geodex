@@ -49,3 +49,12 @@ export async function resultsFor(userId: string) {
 export async function clearRateLimits(): Promise<void> {
   await query('DELETE FROM "RateLimitHit"');
 }
+
+/** Makes every emailed link for this account already expired. */
+export async function expireTokens(email: string): Promise<void> {
+  await query(
+    `UPDATE "EmailToken" SET "expiresAt" = now() - interval '1 minute'
+     WHERE "userId" IN (SELECT id FROM "User" WHERE lower(email) = lower($1))`,
+    [email],
+  );
+}

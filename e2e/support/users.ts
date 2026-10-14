@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import type { APIRequestContext, BrowserContext, Page } from "@playwright/test";
-import { PASSWORD } from "./env";
+import { BASE_URL, PASSWORD } from "./env";
 import { CONFIRM_SUBJECT, tokenIn, waitForMails } from "./mail";
 
 export { PASSWORD };
@@ -117,4 +117,29 @@ export async function signUpViaForm(
   await page.getByLabel("Confirm password", { exact: true }).fill(confirmPassword);
   if (acceptTerms) await page.getByRole("checkbox").check();
   await page.getByRole("button", { name: "Sign up", exact: true }).click();
+}
+
+/**
+ * One credentials login attempt straight against Auth.js, without a browser:
+ * the same CSRF + callback the form uses. `code` is Auth.js's error code when it
+ * failed (for example "credentials", "email_not_verified", "rate_limited_15").
+ * On success the session cookie lands in the request context's cookie jar.
+ */
+export async function credentialsAttempt(
+  request: APIRequestContext,
+  user: Pick<TestUser, "email" | "password">,
+): Promise<{ signedIn: boolean; code: string | null }> {
+  const csrf = await request.get("/api/auth/csrf");
+  const { csrfToken } = (await csrf.json()) as { csrfToken: string };
+  // Not following the redirect: a failure redirects back to the login page with the
+  // reason in its query string, which is where the code is read from.
+  const response = await request.post("/api/auth/callback/credentials", {
+    form: { csrfToken, email: user.email, password: user.password },
+    maxRedirects: 0,
+  });
+  const location = response.headers()["location"];
+  const code = location ? new URL(location, BASE_URL).searchParams.get("code") : null;
+  const cookies = await request.storageState();
+  const signedIn = cookies.cookies.some((c) => c.name.includes("session-token"));
+  return { signedIn, code };
 }

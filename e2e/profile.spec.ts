@@ -25,14 +25,26 @@ async function signedInOnProfile(
   return user;
 }
 
-/** Holds a "press and hold" button down until it fires. */
-async function holdToConfirm(page: Page, name: string) {
+/**
+ * Holds a "press and hold" button down until it fires. Chromium holds it with the mouse,
+ * like a person. WebKit holds it with the keyboard (Space, which the button supports too):
+ * Playwright's WebKit build on Linux sometimes drops the pointer events of a long mouse press,
+ * so the hold never started there, while it works every time on Chromium and WebKit-on-Windows.
+ */
+async function holdToConfirm(page: Page, name: string, browserName: string) {
   const button = page.getByRole("button", { name });
   await expect(button).toBeEnabled();
-  await button.hover();
-  await page.mouse.down();
-  await page.waitForTimeout(2_600);
-  await page.mouse.up();
+  if (browserName === "webkit") {
+    await button.focus();
+    await page.keyboard.down("Space");
+    await page.waitForTimeout(2_600);
+    await page.keyboard.up("Space");
+  } else {
+    await button.hover();
+    await page.mouse.down();
+    await page.waitForTimeout(2_600);
+    await page.mouse.up();
+  }
 }
 
 test.describe("profile management", () => {
@@ -124,6 +136,7 @@ test.describe("profile management", () => {
     page,
     context,
     request,
+    browserName,
   }) => {
     const user = await createConfirmedUser(request);
     expect(await signInContext(context, user)).toBe(true);
@@ -152,7 +165,7 @@ test.describe("profile management", () => {
     expect(await resultsFor(id)).toHaveLength(1);
 
     // ...a full hold is.
-    await holdToConfirm(page, "Hold to reset");
+    await holdToConfirm(page, "Hold to reset", browserName);
     await expect(dialog.getByText("Statistics reset")).toBeVisible();
     expect(await resultsFor(id)).toHaveLength(0);
     await dialog.getByRole("button", { name: "Done" }).click();
@@ -166,6 +179,7 @@ test.describe("profile management", () => {
     page,
     context,
     request,
+    browserName,
   }) => {
     const user = await signedInOnProfile(page, context, request, { displayName: "Soon Gone" });
     const id = (await userByEmail(user.email))!.id;
@@ -173,13 +187,13 @@ test.describe("profile management", () => {
     await page.getByRole("button", { name: "Delete account" }).click();
     const dialog = page.getByRole("dialog");
     await dialog.getByLabel("Enter your password to confirm", { exact: true }).fill("not-the-password-1");
-    await holdToConfirm(page, "Hold to delete");
+    await holdToConfirm(page, "Hold to delete", browserName);
     // The wrong password is refused by the server even after a full hold.
     await expect(dialog.getByRole("alert")).toBeVisible();
     expect(await userByEmail(user.email)).not.toBeNull();
 
     await dialog.getByLabel("Enter your password to confirm", { exact: true }).fill(user.password);
-    await holdToConfirm(page, "Hold to delete");
+    await holdToConfirm(page, "Hold to delete", browserName);
     await expect(dialog.getByText("Your account has been deleted")).toBeVisible();
 
     // Signed out and sent back to the title screen.

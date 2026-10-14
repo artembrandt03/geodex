@@ -262,6 +262,8 @@ const CountryLayer = memo(function CountryLayer({
             <Geography
               key={geo.rsmKey}
               geography={geo}
+              // A stable handle for the end-to-end tests to click a specific country.
+              data-code={code ?? undefined}
               className={geoClassName}
               onClick={() => {
                 if (interactive) onCountryClick?.(code);

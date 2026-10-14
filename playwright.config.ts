@@ -49,7 +49,7 @@ export default defineConfig({
     },
     {
       name: "webkit-desktop",
-      timeout: 60_000,
+      timeout: 90_000,
       use: { ...devices["Desktop Safari"] },
       testIgnore: "**/mobile/**",
     },
@@ -60,7 +60,7 @@ export default defineConfig({
     },
     {
       name: "mobile-safari",
-      timeout: 60_000,
+      timeout: 90_000,
       use: { ...devices["iPhone 14"] },
       testMatch: "**/mobile/**/*.spec.ts",
     },

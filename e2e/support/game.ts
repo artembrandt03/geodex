@@ -19,6 +19,48 @@ export const USA: Q = { code: "USA", name: "United States of America" };
 /** Five easy countries for a standard 5-question round. */
 export const FIVE: Q[] = [CUBA, JAPAN, BRAZIL, EGYPT, AUSTRALIA];
 
+/** Twenty distinct countries, enough for the longest round. */
+export const POOL: Q[] = [
+  CUBA,
+  JAPAN,
+  BRAZIL,
+  EGYPT,
+  AUSTRALIA,
+  SPAIN,
+  FRANCE,
+  { code: "ARG", name: "Argentina" },
+  { code: "CAN", name: "Canada" },
+  { code: "DEU", name: "Germany" },
+  { code: "IND", name: "India" },
+  { code: "ITA", name: "Italy" },
+  { code: "KEN", name: "Kenya" },
+  { code: "MEX", name: "Mexico" },
+  { code: "NZL", name: "New Zealand" },
+  { code: "PER", name: "Peru" },
+  { code: "TUR", name: "Turkey" },
+  { code: "UKR", name: "Ukraine" },
+  { code: "ZAF", name: "South Africa" },
+  { code: "THA", name: "Thailand" },
+];
+
+/** The first n countries of the pool, for a round of n questions. */
+export function questionsFor(n: number): Q[] {
+  return POOL.slice(0, n);
+}
+
+/**
+ * The round length each browser project uses for the tests that need a leaderboard
+ * of their own (a board is per mode, difficulty and length). Projects run in
+ * parallel against one database, so giving each its own length keeps one project's
+ * players off another project's board.
+ */
+export const BOARD_LENGTH_BY_PROJECT: Record<string, number> = {
+  "chromium-desktop": 5,
+  "webkit-desktop": 10,
+  "mobile-chrome": 15,
+  "mobile-safari": 20,
+};
+
 /**
  * Makes the next round ask exactly these questions, in this order. The real
  * /api/rounds/start response is kept (including its signed token, so saving the
@@ -85,6 +127,29 @@ export async function playPerfectNameRound(page: Page, questions: Q[]): Promise<
   for (const q of questions) {
     await page.getByText(q.name, { exact: true }).first().waitFor();
     await clickCountry(page, q.code);
+    await advance(page);
+  }
+}
+
+/**
+ * Plays every question of a name-mode round that will be SAVED, so its timing
+ * must look human to the server (at least half a second a question, and never
+ * more than the real time since the round was issued). Call page.clock.install()
+ * before opening the round; this nudges the fake clock a little before each answer.
+ * `wrongAt` lists question numbers (from 0) to answer wrongly.
+ */
+export async function playTimedRound(
+  page: Page,
+  questions: Q[],
+  { wrongAt = [] as number[], msPerQuestion = 800 } = {},
+): Promise<void> {
+  for (let i = 0; i < questions.length; i++) {
+    const q = questions[i];
+    await page.getByText(q.name, { exact: true }).first().waitFor();
+    await page.clock.fastForward(msPerQuestion);
+    // A far-away country that can't be a neighbor of any in the pool.
+    const wrong = q.code === "AUS" ? "CUB" : "AUS";
+    await clickCountry(page, wrongAt.includes(i) ? wrong : q.code);
     await advance(page);
   }
 }

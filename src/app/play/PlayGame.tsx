@@ -183,7 +183,7 @@ function ActiveRound({
     if (!isRevealing) return;
     function onKeyDown(event: KeyboardEvent) {
       if (event.key !== "Enter" || event.repeat || event.defaultPrevented) return;
-      if (document.querySelector('[role="dialog"]')) return;
+      if (document.querySelector('[role="dialog"], [role="alertdialog"]')) return;
       event.preventDefault();
       advance();
     }

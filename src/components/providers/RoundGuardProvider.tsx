@@ -1,6 +1,15 @@
 "use client";
 
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { useSession } from "next-auth/react";
 import { motion } from "framer-motion";
 
@@ -31,6 +40,19 @@ export function RoundGuardProvider({ children }: { children: ReactNode }) {
   const { data: session } = useSession();
   const [guardEnabled, setGuardEnabled] = useState(false);
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
+  const continueRef = useRef<HTMLButtonElement>(null);
+
+  // While the confirmation is up: Escape means "Continue playing", and focus starts on
+  // that safe choice so a stray Enter can't end the round.
+  useEffect(() => {
+    if (!pendingAction) return;
+    continueRef.current?.focus();
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setPendingAction(null);
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [pendingAction]);
 
   const guardedAction = useCallback(
     (action: () => void) => {
@@ -57,20 +79,26 @@ export function RoundGuardProvider({ children }: { children: ReactNode }) {
           onClick={() => setPendingAction(null)}
         >
           <motion.div
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="end-round-title"
+            aria-describedby="end-round-body"
             initial={{ opacity: 0, scale: 0.95, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ duration: 0.2 }}
             onClick={(e) => e.stopPropagation()}
             className="w-full max-w-sm rounded-2xl border border-border bg-surface p-6 text-center shadow-2xl"
           >
-            <h2 className="font-display text-xl font-bold">End this round?</h2>
-            <p className="mt-2 text-sm text-muted">
+            <h2 id="end-round-title" className="font-display text-xl font-bold">
+              End this round?
+            </h2>
+            <p id="end-round-body" className="mt-2 text-sm text-muted">
               If you leave now, this round will end and your progress won&apos;t be saved.
-              {session?.user &&
-                " It won't count toward your profile once that's tracked, either."}
+              {session?.user && " It won't count toward your profile or the leaderboard."}
             </p>
             <div className="mt-5 flex justify-center gap-3">
               <motion.button
+                ref={continueRef}
                 type="button"
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.97 }}

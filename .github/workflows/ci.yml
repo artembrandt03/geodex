@@ -25,6 +25,8 @@ jobs:
       # The Prisma client is generated, not committed.
       - run: npx prisma generate
       - run: npm run lint
+      # Next generates global types (LayoutProps and friends) that the app uses; they aren't committed.
+      - run: npx next typegen
       - run: npx tsc --noEmit
       - run: npm test
 

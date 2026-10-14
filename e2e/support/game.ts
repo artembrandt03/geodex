@@ -1,4 +1,4 @@
-import type { Page } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 
 export interface Q {
   code: string;
@@ -39,16 +39,40 @@ export function playUrl(mode: Mode, difficulty: Difficulty = "EASY", roundLength
   return `/play?mode=${mode}&difficulty=${difficulty}&roundLength=${roundLength}`;
 }
 
-/** Name mode: clicks a country on the map. Dispatches the click on the shape so tiny or oddly shaped countries can't be missed. */
+/**
+ * Name mode: clicks a country on the map and waits for the answer to register.
+ * The click is dispatched on the shape itself so tiny or oddly shaped countries
+ * can't be missed. Right after "Next question" the page shows the new prompt one
+ * render before the map is handed its new click handler, which a human can't beat
+ * but a script can, so the click is retried until the reveal appears (a repeat
+ * click during the reveal only zooms, which is harmless).
+ */
 export async function clickCountry(page: Page, code: string): Promise<void> {
-  await page.locator(`path[data-code="${code}"]`).first().dispatchEvent("click");
+  const shape = page.locator(`path[data-code="${code}"]`).first();
+  const reveal = page.getByRole("button", { name: /Next question|See results/ });
+  await expect(async () => {
+    await shape.dispatchEvent("click");
+    await expect(reveal).toBeVisible({ timeout: 600 });
+  }).toPass({ timeout: 10_000 });
 }
 
-/** Shape mode: types an answer and submits it. */
-export async function guessShape(page: Page, answer: string): Promise<void> {
+/**
+ * Shape mode: types an answer and submits it. Waits for the country list the
+ * answer is matched against (fetched when the round opens), since a guess typed
+ * before it arrives matches nothing; a person can't type that fast, a script can.
+ * Submits with the Guess button by default: in WebKit, Enter in an input whose
+ * suggestion list is open picks a suggestion instead of submitting.
+ */
+export async function guessShape(
+  page: Page,
+  answer: string,
+  { submit = "button" }: { submit?: "button" | "enter" } = {},
+): Promise<void> {
+  await page.locator("#country-names option").first().waitFor({ state: "attached" });
   const input = page.getByPlaceholder("Type a country name...");
   await input.fill(answer);
-  await input.press("Enter");
+  if (submit === "enter") await input.press("Enter");
+  else await page.getByRole("button", { name: "Guess", exact: true }).click();
 }
 
 /** From the reveal to the next question (or the results after the last). */

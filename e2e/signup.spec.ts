@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./support/test";
 import { CONFIRM_SUBJECT, linkIn, mailsTo, tokenIn, waitForMails } from "./support/mail";
 import {
   createConfirmedUser,

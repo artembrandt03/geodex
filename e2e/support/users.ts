@@ -79,12 +79,18 @@ export async function signInContext(context: BrowserContext, user: TestUser): Pr
 }
 
 /**
- * Waits for a page's scripts to finish loading, so the form is hydrated before a
- * test starts filling it: submitting earlier can fall back to a plain browser form
- * post, which a person (who needs a moment to type) never triggers.
+ * Waits until the page's form (if it has one) is hydrated, so a test doesn't
+ * start filling it before React has attached its handlers: submitting earlier
+ * falls back to a plain browser form post, which a person (who needs a moment to
+ * type) never triggers. React marks every DOM node it has taken over with a
+ * "__reactProps$..." property, which is what this waits for.
  */
 export async function settled(page: Page): Promise<void> {
   await page.waitForLoadState("networkidle");
+  await page.waitForFunction(() => {
+    const form = document.querySelector("main form");
+    return !form || Object.keys(form).some((key) => key.startsWith("__reactProps"));
+  });
 }
 
 /** Logs in through the real login form (submits it; the caller checks the outcome). */

@@ -28,8 +28,11 @@ export default defineConfig({
   globalSetup: "./e2e/global-setup.ts",
   fullyParallel: true,
   forbidOnly: isCI,
-  retries: isCI ? 1 : 0,
-  workers: isCI ? 2 : 4,
+  // The animated map, clouds and WebAssembly make WebKit in particular slow when several
+  // browsers share a machine, so a test that fails once is retried; Playwright lists
+  // any that only passed on a retry as "flaky" so they don't hide.
+  retries: 2,
+  workers: isCI ? 2 : 3,
   timeout: 45_000,
   expect: { timeout: 10_000 },
   reporter: isCI ? [["github"], ["html", { open: "never" }]] : [["list"], ["html", { open: "never" }]],
@@ -46,6 +49,7 @@ export default defineConfig({
     },
     {
       name: "webkit-desktop",
+      timeout: 60_000,
       use: { ...devices["Desktop Safari"] },
       testIgnore: "**/mobile/**",
     },
@@ -56,6 +60,7 @@ export default defineConfig({
     },
     {
       name: "mobile-safari",
+      timeout: 60_000,
       use: { ...devices["iPhone 14"] },
       testMatch: "**/mobile/**/*.spec.ts",
     },

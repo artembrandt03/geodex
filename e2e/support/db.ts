@@ -58,3 +58,26 @@ export async function expireTokens(email: string): Promise<void> {
     [email],
   );
 }
+
+/**
+ * Puts a finished round straight onto a leaderboard, for tests that are about how
+ * a board LOOKS and shouldn't each have to play a whole round to fill it. Uses the
+ * current scoring version, since the boards ignore older ones.
+ */
+export async function seedResult(
+  userId: string,
+  {
+    mode = "NAME",
+    difficulty = "EASY",
+    roundLength = 5,
+    score = 100,
+    correct = 5,
+  }: { mode?: string; difficulty?: string; roundLength?: number; score?: number; correct?: number } = {},
+): Promise<void> {
+  await query(
+    `INSERT INTO "GameResult"
+       (id, "userId", mode, difficulty, "roundLength", score, correct, "totalTimeMs", "bestStreak", "neighborCount", "scoringVersion", "roundNonce")
+     VALUES ($1, $2, $3::"GameMode", $4::"Difficulty", $5, $6, $7, 30000, $7, 0, 2, $1)`,
+    [`e2e-${Math.random().toString(36).slice(2, 12)}`, userId, mode, difficulty, roundLength, score, correct],
+  );
+}

@@ -99,8 +99,11 @@ export async function loginViaForm(page: Page, user: Pick<TestUser, "email" | "p
   await settled(page);
   await page.getByLabel("Email").fill(user.email);
   // exact: the show/hide button is also labelled "Show password".
+  // Enter in the last field submits the form, like a person typing would; clicking the
+  // button instead depends on Playwright's "stable" check, which Playwright's experimental
+  // WebKit-on-Windows build sometimes never passes.
   await page.getByLabel("Password", { exact: true }).fill(user.password);
-  await page.getByRole("button", { name: "Log in", exact: true }).click();
+  await page.getByLabel("Password", { exact: true }).press("Enter");
 }
 
 /** Fills and submits the real signup form. */
@@ -116,7 +119,8 @@ export async function signUpViaForm(
   await page.getByLabel("Password", { exact: true }).fill(user.password);
   await page.getByLabel("Confirm password", { exact: true }).fill(confirmPassword);
   if (acceptTerms) await page.getByRole("checkbox").check();
-  await page.getByRole("button", { name: "Sign up", exact: true }).click();
+  // Submit with Enter (see loginViaForm); the browser still validates required fields.
+  await page.getByLabel("Confirm password", { exact: true }).press("Enter");
 }
 
 /**

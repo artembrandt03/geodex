@@ -25,6 +25,7 @@ export function HoldToConfirmButton({
 
   const startedAt = useRef(0);
   const frame = useRef<number | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fired = useRef(false);
   const onConfirmRef = useRef(onConfirm);
   useEffect(() => {
@@ -34,6 +35,8 @@ export function HoldToConfirmButton({
   const cancel = useCallback(() => {
     if (frame.current !== null) cancelAnimationFrame(frame.current);
     frame.current = null;
+    if (timer.current !== null) clearTimeout(timer.current);
+    timer.current = null;
     setProgress(0);
   }, []);
 
@@ -41,19 +44,22 @@ export function HoldToConfirmButton({
     if (frame.current !== null || fired.current) return;
     startedAt.current = performance.now();
 
-    // Measured with performance.now() on both ends, not the timestamp requestAnimationFrame
-    // hands in: some browsers base that on a different clock, which would make the elapsed
-    // time wrong (even negative), and the hold would never complete.
+    // The hold completes on a timer, so it takes exactly holdMs however slowly the browser
+    // delivers animation frames (a busy phone, or headless WebKit under load, can stretch a
+    // frame-counted hold well past two seconds). The frames below only draw the fill.
+    timer.current = setTimeout(() => {
+      if (frame.current !== null) cancelAnimationFrame(frame.current);
+      frame.current = null;
+      timer.current = null;
+      fired.current = true;
+      setProgress(0);
+      onConfirmRef.current();
+    }, holdMs);
+
     const tick = () => {
-      const fraction = Math.min((performance.now() - startedAt.current) / holdMs, 1);
-      if (fraction >= 1) {
-        frame.current = null;
-        fired.current = true;
-        setProgress(0);
-        onConfirmRef.current();
-        return;
-      }
-      // Never exactly 0 while holding, so `holding` is true from the first frame.
+      // Never exactly 0 while holding (so `holding` is true from the first frame), and never
+      // quite 1: the timer is what finishes it.
+      const fraction = Math.min((performance.now() - startedAt.current) / holdMs, 0.999);
       setProgress(Math.max(fraction, 0.001));
       frame.current = requestAnimationFrame(tick);
     };

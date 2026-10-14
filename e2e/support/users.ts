@@ -1,0 +1,87 @@
+import { randomBytes } from "node:crypto";
+import type { APIRequestContext, BrowserContext, Page } from "@playwright/test";
+import { PASSWORD } from "./env";
+import { CONFIRM_SUBJECT, tokenIn, waitForMails } from "./mail";
+
+export { PASSWORD };
+
+/**
+ * Test accounts use @gmail.com addresses because signup checks that the
+ * address's domain really has a mail server. The mail never leaves the machine:
+ * the app sends to the local sink, not to Gmail.
+ */
+export function uniqueEmail(tag = "e2e"): string {
+  return `${tag}-${randomBytes(5).toString("hex")}@gmail.com`;
+}
+
+export interface TestUser {
+  email: string;
+  password: string;
+  displayName: string;
+}
+
+export function newUser(overrides: Partial<TestUser> = {}): TestUser {
+  return {
+    email: uniqueEmail(),
+    password: PASSWORD,
+    displayName: "E2E Player",
+    ...overrides,
+  };
+}
+
+/** POST /api/register directly. */
+export async function registerViaApi(request: APIRequestContext, user: TestUser) {
+  return request.post("/api/register", {
+    data: {
+      displayName: user.displayName,
+      email: user.email,
+      password: user.password,
+      acceptTerms: true,
+    },
+  });
+}
+
+/**
+ * A signed-up, email-confirmed account, made through the real API: register,
+ * read the confirmation mail from the sink, use its link. Returns the user and
+ * the one-time login ticket the confirmation hands back.
+ */
+export async function createConfirmedUser(
+  request: APIRequestContext,
+  overrides: Partial<TestUser> = {},
+): Promise<TestUser & { loginToken: string }> {
+  const user = newUser(overrides);
+  const registered = await registerViaApi(request, user);
+  if (!registered.ok()) throw new Error(`register failed: ${registered.status()} ${await registered.text()}`);
+
+  const mails = await waitForMails(user.email, CONFIRM_SUBJECT);
+  const verified = await request.post("/api/account/verify-email", {
+    data: { token: tokenIn(mails[mails.length - 1]) },
+  });
+  if (!verified.ok()) throw new Error(`verify failed: ${verified.status()} ${await verified.text()}`);
+  const { loginToken } = (await verified.json()) as { loginToken: string };
+  return { ...user, loginToken };
+}
+
+/**
+ * Signs a browser context in without going through the login form (faster):
+ * the same CSRF + credentials callback the form uses, with the session cookie
+ * landing in the context. Returns whether a session was created.
+ */
+export async function signInContext(context: BrowserContext, user: TestUser): Promise<boolean> {
+  const csrf = await context.request.get("/api/auth/csrf");
+  const { csrfToken } = (await csrf.json()) as { csrfToken: string };
+  const response = await context.request.post("/api/auth/callback/credentials", {
+    form: { csrfToken, email: user.email, password: user.password, json: "true" },
+  });
+  const cookies = await context.cookies();
+  return response.ok() && cookies.some((c) => c.name.includes("session-token"));
+}
+
+/** Logs in through the real login form. */
+export async function loginViaForm(page: Page, user: Pick<TestUser, "email" | "password">) {
+  await page.goto("/login");
+  await page.getByLabel("Email").fill(user.email);
+  await page.getByLabel("Password").fill(user.password);
+  await page.getByRole("button", { name: "Log in", exact: true }).click();
+}

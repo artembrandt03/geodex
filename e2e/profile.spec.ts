@@ -26,26 +26,39 @@ async function signedInOnProfile(
 }
 
 /**
- * Holds a "press and hold" button down until it fires. Chromium holds it with the mouse,
- * like a person. WebKit holds it with the keyboard (Space, which the button supports too):
- * Playwright's WebKit build on Linux sometimes drops the pointer events of a long mouse press,
- * so the hold never started there, while it works every time on Chromium and WebKit-on-Windows.
+ * Holds a "press and hold" button down until the action it guards is actually requested
+ * (then lets go), rather than for a fixed time, so a slow machine can't make a hold fall short.
+ * Chromium holds with the mouse, like a person. WebKit holds with the keyboard (Space, which
+ * the button supports too): Playwright's WebKit build on Linux drops pointer events of a long
+ * mouse press now and then, while it works every time on Chromium and WebKit-on-Windows.
  */
-async function holdToConfirm(page: Page, name: string, browserName: string) {
+async function holdToConfirm(
+  page: Page,
+  name: string,
+  browserName: string,
+  request: { method: string; path: string },
+) {
   const button = page.getByRole("button", { name });
   await expect(button).toBeEnabled();
+  const sent = page.waitForRequest(
+    (r) => r.method() === request.method && new URL(r.url()).pathname === request.path,
+    { timeout: 20_000 },
+  );
   if (browserName === "webkit") {
     await button.focus();
     await page.keyboard.down("Space");
-    await page.waitForTimeout(2_600);
+    await sent;
     await page.keyboard.up("Space");
   } else {
     await button.hover();
     await page.mouse.down();
-    await page.waitForTimeout(2_600);
+    await sent;
     await page.mouse.up();
   }
 }
+
+const RESET = { method: "POST", path: "/api/profile/reset" };
+const DELETE = { method: "DELETE", path: "/api/profile" };
 
 test.describe("profile management", () => {
   test("changing the display name updates the nav bar at once, and offensive names are refused", async ({
@@ -165,7 +178,7 @@ test.describe("profile management", () => {
     expect(await resultsFor(id)).toHaveLength(1);
 
     // ...a full hold is.
-    await holdToConfirm(page, "Hold to reset", browserName);
+    await holdToConfirm(page, "Hold to reset", browserName, RESET);
     await expect(dialog.getByText("Statistics reset")).toBeVisible();
     expect(await resultsFor(id)).toHaveLength(0);
     await dialog.getByRole("button", { name: "Done" }).click();
@@ -187,13 +200,13 @@ test.describe("profile management", () => {
     await page.getByRole("button", { name: "Delete account" }).click();
     const dialog = page.getByRole("dialog");
     await dialog.getByLabel("Enter your password to confirm", { exact: true }).fill("not-the-password-1");
-    await holdToConfirm(page, "Hold to delete", browserName);
+    await holdToConfirm(page, "Hold to delete", browserName, DELETE);
     // The wrong password is refused by the server even after a full hold.
     await expect(dialog.getByRole("alert")).toBeVisible();
     expect(await userByEmail(user.email)).not.toBeNull();
 
     await dialog.getByLabel("Enter your password to confirm", { exact: true }).fill(user.password);
-    await holdToConfirm(page, "Hold to delete", browserName);
+    await holdToConfirm(page, "Hold to delete", browserName, DELETE);
     await expect(dialog.getByText("Your account has been deleted")).toBeVisible();
 
     // Signed out and sent back to the title screen.

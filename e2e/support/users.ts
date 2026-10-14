@@ -78,10 +78,37 @@ export async function signInContext(context: BrowserContext, user: TestUser): Pr
   return response.ok() && cookies.some((c) => c.name.includes("session-token"));
 }
 
-/** Logs in through the real login form. */
+/**
+ * Waits for a page's scripts to finish loading, so the form is hydrated before a
+ * test starts filling it: submitting earlier can fall back to a plain browser form
+ * post, which a person (who needs a moment to type) never triggers.
+ */
+export async function settled(page: Page): Promise<void> {
+  await page.waitForLoadState("networkidle");
+}
+
+/** Logs in through the real login form (submits it; the caller checks the outcome). */
 export async function loginViaForm(page: Page, user: Pick<TestUser, "email" | "password">) {
   await page.goto("/login");
+  await settled(page);
   await page.getByLabel("Email").fill(user.email);
-  await page.getByLabel("Password").fill(user.password);
+  // exact: the show/hide button is also labelled "Show password".
+  await page.getByLabel("Password", { exact: true }).fill(user.password);
   await page.getByRole("button", { name: "Log in", exact: true }).click();
+}
+
+/** Fills and submits the real signup form. */
+export async function signUpViaForm(
+  page: Page,
+  user: TestUser,
+  { acceptTerms = true, confirmPassword = user.password } = {},
+) {
+  await page.goto("/register");
+  await settled(page);
+  await page.getByLabel("Display name").fill(user.displayName);
+  await page.getByLabel("Email").fill(user.email);
+  await page.getByLabel("Password", { exact: true }).fill(user.password);
+  await page.getByLabel("Confirm password", { exact: true }).fill(confirmPassword);
+  if (acceptTerms) await page.getByRole("checkbox").check();
+  await page.getByRole("button", { name: "Sign up", exact: true }).click();
 }

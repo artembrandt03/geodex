@@ -41,6 +41,20 @@ mvp -> dev -> main
 
 Later feature/version branches follow the same pattern: `feature/*` or `vX.Y` branches merge into `dev`, and `dev` merges into `main` for release.
 
+## Testing
+
+```bash
+npm test                  # unit tests (Vitest): scoring, matching, rate limits, ...
+npm run test:e2e          # end-to-end suite (Playwright): Chromium + WebKit, desktop + phone
+npm run test:e2e:chromium # the fast loop
+npm run test:e2e:ui       # Playwright's interactive runner
+```
+
+The end-to-end suite builds the app and runs it against its own `geodex_test` database
+(same Postgres container as development; it refuses to run against any database whose name
+doesn't end in `_test`) with a fake mail server, so it never touches dev data or sends real
+email. See [CLAUDE.md](./CLAUDE.md) for how it works. Start Postgres first (`docker compose up -d`).
+
 ## Getting started
 
 _Coming soon — project scaffolding in progress._

@@ -16,7 +16,8 @@ import { consumeToken } from "@/lib/emailTokens";
 
 const credentialsSchema = z.object({
   email: z.string().email(),
-  password: z.string().min(1),
+  // An upper bound so a huge "password" can't be used to make us hash or compare megabytes.
+  password: z.string().min(1).max(200),
 });
 
 /**

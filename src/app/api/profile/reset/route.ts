@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { checkCurrentPassword, passwordLimitedMessage } from "@/lib/passwordCheck";
 
-const resetSchema = z.object({ password: z.string().min(1, "Enter your password to confirm") });
+const resetSchema = z.object({ password: z.string().min(1, "Enter your password to confirm").max(200) });
 
 /**
  * Wipes every saved round for the signed-in player (all scoring versions),

@@ -18,7 +18,7 @@ import { getSmtpConfig } from "@/lib/mail";
 
 const registerSchema = z.object({
   email: z.string().trim().toLowerCase().email(),
-  password: z.string().min(8, "Password must be at least 8 characters"),
+  password: z.string().min(8, "Password must be at least 8 characters").max(200, "That password is too long"),
   displayName: displayNameSchema,
   // The signup form's consent box (age and the terms and privacy policy). The
   // form requires it, and so does the API, so it can't be skipped by calling it directly.

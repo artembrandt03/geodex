@@ -68,7 +68,7 @@ export async function PATCH(request: Request) {
   return NextResponse.json(user);
 }
 
-const deleteSchema = z.object({ password: z.string().min(1, "Enter your password to confirm") });
+const deleteSchema = z.object({ password: z.string().min(1, "Enter your password to confirm").max(200) });
 
 /**
  * Permanently deletes the signed-in player's account. Needs the current

@@ -41,8 +41,11 @@ export function HoldToConfirmButton({
     if (frame.current !== null || fired.current) return;
     startedAt.current = performance.now();
 
-    const tick = (now: number) => {
-      const fraction = Math.min((now - startedAt.current) / holdMs, 1);
+    // Measured with performance.now() on both ends, not the timestamp requestAnimationFrame
+    // hands in: some browsers base that on a different clock, which would make the elapsed
+    // time wrong (even negative), and the hold would never complete.
+    const tick = () => {
+      const fraction = Math.min((performance.now() - startedAt.current) / holdMs, 1);
       if (fraction >= 1) {
         frame.current = null;
         fired.current = true;

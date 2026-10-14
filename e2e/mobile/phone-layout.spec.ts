@@ -10,6 +10,7 @@ import {
   playUrl,
   stubQuestions,
 } from "../support/game";
+import { BASE_URL } from "../support/env";
 import { createConfirmedUser, signInContext } from "../support/users";
 
 interface Box {
@@ -92,6 +93,9 @@ test.describe("phone layout", () => {
 
     await page.getByRole("button", { name: "Open menu" }).click();
     await page.getByRole("button", { name: "Sign out" }).click();
+    // Wait for the sign-out to finish (it ends on the title screen) before navigating away,
+    // or the request is aborted and the session survives.
+    await expect(page).toHaveURL(`${BASE_URL}/`);
     await page.goto("/setup");
     await page.getByRole("button", { name: "Open menu" }).click();
     await expect(page.getByRole("link", { name: "Log in", exact: true })).toBeVisible();

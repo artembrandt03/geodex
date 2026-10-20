@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { DotLottieReact } from "@lottiefiles/dotlottie-react";
+import { usePrefersReducedMotion } from "@/lib/usePrefersReducedMotion";
 
 export interface CloudLayerProps {
   /** True while the setup screen is zooming into the map to start a round —
@@ -40,6 +41,11 @@ const CLOUDS: CloudSpec[] = Array.from({ length: CLOUD_COUNT }, (_, i) => ({
 
 /** A busy sky of real cloud animations, drifting both ways at different speeds. */
 export function CloudLayer({ escaping }: CloudLayerProps) {
+  // Forty-eight animated canvases that never stop: exactly what someone who asked for
+  // reduced motion (or a slow phone) doesn't want. The map underneath is enough.
+  const reducedMotion = usePrefersReducedMotion();
+  if (reducedMotion) return null;
+
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden">
       {CLOUDS.map((cloud) => (

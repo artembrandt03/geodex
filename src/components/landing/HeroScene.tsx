@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Particles } from "./Particles";
+import { usePrefersReducedMotion } from "@/lib/usePrefersReducedMotion";
 import { ArcText } from "./ArcText";
 
 export interface HeroSceneProps {
@@ -76,6 +77,8 @@ function useEmblemSize() {
 export function HeroScene({ transitioning, onPlay }: HeroSceneProps) {
   const size = useEmblemSize();
   useMapPreload();
+  // The drifting particle field never stops; it stays off for anyone who asked for reduced motion.
+  const reducedMotion = usePrefersReducedMotion();
 
   return (
     <motion.div
@@ -84,17 +87,19 @@ export function HeroScene({ transitioning, onPlay }: HeroSceneProps) {
       className="relative flex h-full w-full flex-col items-center justify-center overflow-hidden bg-black px-4"
     >
       <div className="pointer-events-none absolute inset-0">
-        <Particles
-          particleColors={PARTICLE_COLORS}
-          particleCount={880}
-          particleSpread={12}
-          speed={0.05}
-          particleBaseSize={80}
-          alphaParticles
-          disableRotation={false}
-          moveParticlesOnHover
-          particleHoverFactor={2}
-        />
+        {!reducedMotion && (
+          <Particles
+            particleColors={PARTICLE_COLORS}
+            particleCount={880}
+            particleSpread={12}
+            speed={0.05}
+            particleBaseSize={80}
+            alphaParticles
+            disableRotation={false}
+            moveParticlesOnHover
+            particleHoverFactor={2}
+          />
+        )}
       </div>
 
       {/* The earth with "GEODEX" arching above it and the tagline curving

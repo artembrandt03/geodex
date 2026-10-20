@@ -38,6 +38,11 @@ export default defineConfig({
   reporter: isCI ? [["github"], ["html", { open: "never" }]] : [["list"], ["html", { open: "never" }]],
   use: {
     baseURL: BASE_URL,
+    // The app drops its endless decorative animation (48 cloud canvases, the WebGL particle
+    // field) for visitors who ask for reduced motion. Running the suite that way keeps every
+    // page light, which is what keeps WebKit from timing out; e2e/motion.spec.ts is the one
+    // place that turns full motion back on.
+    reducedMotion: "reduce",
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
   },

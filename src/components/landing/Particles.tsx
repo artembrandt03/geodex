@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Renderer, Camera, Geometry, Program, Mesh } from "ogl";
 
 // Adapted from react-bits' "Particles" background (https://reactbits.dev/backgrounds/particles),
@@ -123,6 +123,8 @@ export function Particles({
 }: ParticlesProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mouseRef = useRef({ x: 0, y: 0 });
+  // Bumped when the browser hands a lost WebGL context back, which rebuilds the scene.
+  const [restoreCount, setRestoreCount] = useState(0);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -207,8 +209,22 @@ export function Particles({
     let animationFrameId: number;
     let lastTime = performance.now();
     let elapsed = 0;
+    // Browsers take a WebGL context away when too many exist (Safari does this readily),
+    // and ogl's objects are unusable afterwards: rendering again throws on every frame.
+    // So stop drawing at once, and let the browser give the context back if it can.
+    let contextLost = false;
+
+    const handleContextLost = (event: Event) => {
+      event.preventDefault(); // without this the browser will never restore it
+      contextLost = true;
+      cancelAnimationFrame(animationFrameId);
+    };
+    const handleContextRestored = () => setRestoreCount((count) => count + 1);
+    gl.canvas.addEventListener("webglcontextlost", handleContextLost);
+    gl.canvas.addEventListener("webglcontextrestored", handleContextRestored);
 
     const update = (t: number) => {
+      if (contextLost) return;
       animationFrameId = requestAnimationFrame(update);
       const delta = t - lastTime;
       lastTime = t;
@@ -230,7 +246,13 @@ export function Particles({
         particles.rotation.z += 0.01 * speed;
       }
 
-      renderer.render({ scene: particles, camera });
+      try {
+        renderer.render({ scene: particles, camera });
+      } catch {
+        // A decorative background must never take the page down with it.
+        contextLost = true;
+        cancelAnimationFrame(animationFrameId);
+      }
     };
 
     animationFrameId = requestAnimationFrame(update);
@@ -241,9 +263,15 @@ export function Particles({
         window.removeEventListener("mousemove", handleMouseMove);
       }
       cancelAnimationFrame(animationFrameId);
+      gl.canvas.removeEventListener("webglcontextlost", handleContextLost);
+      gl.canvas.removeEventListener("webglcontextrestored", handleContextRestored);
       if (container.contains(gl.canvas)) {
         container.removeChild(gl.canvas);
       }
+      // Give the context back right away instead of waiting for garbage collection;
+      // revisiting the title screen repeatedly would otherwise pile contexts up until
+      // the browser starts revoking them.
+      gl.getExtension("WEBGL_lose_context")?.loseContext();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
@@ -258,6 +286,7 @@ export function Particles({
     cameraDistance,
     disableRotation,
     pixelRatio,
+    restoreCount,
   ]);
 
   return (

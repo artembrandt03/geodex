@@ -2,6 +2,7 @@ import { defineConfig, devices } from "@playwright/test";
 import {
   APP_PORT,
   BASE_URL,
+  E2E_AUTH_SECRET,
   MAIL_API,
   MAIL_API_PORT,
   SMTP_PORT,
@@ -119,7 +120,7 @@ export default defineConfig({
         // Every outgoing-email and database setting is set explicitly, so a value
         // in a developer's own .env (a real Gmail password!) can never be used.
         DATABASE_URL: TEST_DATABASE_URL,
-        AUTH_SECRET: "e2e-only-secret-not-used-anywhere-else",
+        AUTH_SECRET: E2E_AUTH_SECRET,
         AUTH_TRUST_HOST: "true",
         NEXT_PUBLIC_SITE_URL: BASE_URL,
         SMTP_HOST: "127.0.0.1",

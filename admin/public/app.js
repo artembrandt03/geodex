@@ -373,7 +373,7 @@
           timeSeries("Feedback per day", "Bug reports and general feedback", d.daily, [["bugs", "Bugs"], ["ideas", "Feedback"]], { type: "bar", stacked: true }),
           card("Recent", "Newest first. Who sent it is not shown.", table(
             [{ title: "When", render: (r) => String(r.at).slice(0, 16) }, { title: "Kind", render: (r) => h("span", { class: `pill ${r.kind === "BUG" ? "bug" : "idea"}` }, r.kind === "BUG" ? "Bug" : "Feedback") },
-              { title: "Subject", key: "subject", text: true }, { title: "Message", key: "excerpt", text: true }, { title: "Mail", render: (r) => h("span", { class: `pill ${r.emailed ? "good" : "bad"}`, title: r.email_error ?? "" }, r.emailed ? "sent" : "not sent") }],
+              { title: "Subject", key: "subject", text: true }, { title: "Message", key: "excerpt", text: true }, { title: "Mail", render: (r) => h("span", { class: `pill ${r.emailed ? "good" : "bad"}`, title: r.email_failed ? "the email failed or was skipped" : "" }, r.emailed ? "sent" : "not sent") }],
             d.recent))));
     },
 

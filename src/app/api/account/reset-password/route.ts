@@ -7,6 +7,7 @@ import { hashKey } from "@/lib/clientIp";
 import { clearHits } from "@/lib/rateLimit";
 import { LOGIN_EMAIL_BUCKET } from "@/lib/authLimits";
 import { normalizeEmail } from "@/lib/accountEmail";
+import { track } from "@/lib/analytics/track";
 
 const schema = z.object({
   token: z.string().min(10).max(200),
@@ -46,5 +47,6 @@ export async function POST(request: Request) {
   // A locked-out player who just proved who they are shouldn't have to wait out the lockout.
   await clearHits(LOGIN_EMAIL_BUCKET, hashKey(normalizeEmail(user.email)));
 
+  await track("reset.success");
   return NextResponse.json({ ok: true });
 }

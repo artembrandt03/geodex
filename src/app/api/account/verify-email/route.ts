@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { consumeToken, issueToken } from "@/lib/emailTokens";
+import { track } from "@/lib/analytics/track";
 
 const schema = z.object({ token: z.string().min(10).max(200) });
 
@@ -28,5 +29,6 @@ export async function POST(request: Request) {
   // straight in with this one-time ticket (the same trust a password reset link carries).
   // It's only handed out here, to whoever just used the single-use link.
   const loginToken = await issueToken(userId, "AUTO_LOGIN");
+  await track("verify.success");
   return NextResponse.json({ ok: true, loginToken });
 }

@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { getUserStats } from "@/lib/profile/data";
 import { displayNameSchema } from "@/lib/profile/displayName";
 import { checkCurrentPassword, passwordLimitedMessage } from "@/lib/passwordCheck";
+import { track } from "@/lib/analytics/track";
 
 /** The signed-in player's account details and lifetime stats (current scoring rules only). */
 export async function GET() {
@@ -107,6 +108,7 @@ export async function DELETE(request: Request) {
   }
 
   await prisma.user.delete({ where: { id: session.user.id } });
+  await track("account.deleted");
 
   return NextResponse.json({ ok: true });
 }

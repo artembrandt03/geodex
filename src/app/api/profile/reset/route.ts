@@ -3,6 +3,7 @@ import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { checkCurrentPassword, passwordLimitedMessage } from "@/lib/passwordCheck";
+import { track } from "@/lib/analytics/track";
 
 const resetSchema = z.object({ password: z.string().min(1, "Enter your password to confirm").max(200) });
 
@@ -44,5 +45,6 @@ export async function POST(request: Request) {
 
   const { count } = await prisma.gameResult.deleteMany({ where: { userId: session.user.id } });
 
+  await track("account.stats_reset");
   return NextResponse.json({ ok: true, deleted: count });
 }

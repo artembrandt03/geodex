@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { changePasswordSchema } from "@/lib/profile/password";
 import { checkCurrentPassword, passwordLimitedMessage } from "@/lib/passwordCheck";
+import { track } from "@/lib/analytics/track";
 
 /**
  * Changes the signed-in player's password. The current password has to be
@@ -46,5 +47,6 @@ export async function POST(request: Request) {
     data: { passwordHash: await bcrypt.hash(newPassword, 12) },
   });
 
+  await track("account.password_changed");
   return NextResponse.json({ ok: true });
 }

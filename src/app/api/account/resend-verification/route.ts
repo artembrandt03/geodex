@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { findUserByEmail, limitAccountEmails, sendVerification } from "@/lib/accountEmail";
+import { track } from "@/lib/analytics/track";
 
 const schema = z.object({ email: z.string().trim().toLowerCase().email() });
 
@@ -19,6 +20,7 @@ export async function POST(request: Request) {
   const limited = await limitAccountEmails(request, email, "verify");
   if (limited) return limited;
 
+  await track("verify.resend_requested");
   const user = await findUserByEmail(email);
   if (user && !user.emailVerifiedAt) {
     try {

@@ -15,6 +15,7 @@ import {
 } from "@/lib/feedback";
 import { getMailConfig, sendFeedbackEmail } from "@/lib/feedbackEmail";
 import { emailBudgetAvailable, recordEmailSent } from "@/lib/emailBudget";
+import { track } from "@/lib/analytics/track";
 
 const HOUR_MS = 60 * 60 * 1000;
 // A hair over the attachment cap, to cover the multipart framing + text fields.
@@ -131,6 +132,7 @@ export async function POST(request: Request) {
       attachmentCount: attachments.length,
     },
   });
+  await track(fields.kind === "BUG" ? "feedback.bug" : "feedback.idea");
 
   // Stored either way; the email is best-effort and its outcome is recorded
   // on the row, so a mail outage never turns into "your message was lost".
@@ -157,6 +159,7 @@ export async function POST(request: Request) {
         attachments,
       });
       await recordEmailSent();
+      await track("email.sent.feedback");
       await prisma.feedback.update({
         where: { id: record.id },
         data: { emailedAt: new Date() },

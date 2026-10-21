@@ -49,6 +49,12 @@ export default defineConfig({
     // page light, which is what keeps WebKit from timing out; e2e/motion.spec.ts is the one
     // place that turns full motion back on.
     reducedMotion: "reduce",
+    // A click or fill that hasn't finished in 20 seconds is hung, not slow. Playwright's
+    // experimental WebKit-on-Windows build loses animation frames now and then (about one
+    // action in a hundred, at random), which makes its "wait until stable" step wait for
+    // the whole test time limit. Failing the action early costs 20 seconds instead of 90,
+    // and the retry then passes. (Linux CI's WebKit doesn't do this.)
+    actionTimeout: 20_000,
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
   },

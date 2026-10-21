@@ -118,7 +118,8 @@ export async function signUpViaForm(
   await page.getByLabel("Email").fill(user.email);
   await page.getByLabel("Password", { exact: true }).fill(user.password);
   await page.getByLabel("Confirm password", { exact: true }).fill(confirmPassword);
-  if (acceptTerms) await page.getByRole("checkbox").check();
+  // force: skips the "wait until stable" step that WebKit-on-Windows sometimes never finishes (see support/click.ts).
+  if (acceptTerms) await page.getByRole("checkbox").check({ force: true });
   // Submit with Enter (see loginViaForm); the browser still validates required fields.
   await page.getByLabel("Confirm password", { exact: true }).press("Enter");
 }

@@ -1,5 +1,6 @@
 import type { Page } from "@playwright/test";
 import { expect, test } from "./support/test";
+import { click } from "./support/click";
 
 /** The title screen's WebGL canvas: the only one on the page (the clouds are on the setup screen). */
 async function particlesCanvasCount(page: Page) {
@@ -36,7 +37,7 @@ test.describe("decorative motion", () => {
       await page.waitForTimeout(1_500);
       expect(errors).toEqual([]);
 
-      await page.getByRole("button", { name: "Play", exact: true }).click();
+      await click(page.getByRole("button", { name: "Play", exact: true }));
       await expect(page).toHaveURL(new RegExp("/setup$"));
     });
 
@@ -75,7 +76,7 @@ test.describe("decorative motion", () => {
       }
 
       // And the page is still perfectly usable.
-      await page.getByRole("button", { name: "Play", exact: true }).click();
+      await click(page.getByRole("button", { name: "Play", exact: true }));
       await expect(page).toHaveURL(new RegExp("/setup$"));
     });
 
@@ -96,7 +97,7 @@ test.describe("decorative motion", () => {
       await page.waitForLoadState("networkidle");
       expect(await particlesCanvasCount(page), "particle canvas on the title screen").toBe(0);
 
-      await page.getByRole("button", { name: "Play", exact: true }).click();
+      await click(page.getByRole("button", { name: "Play", exact: true }));
       await expect(page).toHaveURL(new RegExp("/setup$"));
       await expect(page.getByRole("heading", { name: "Geodex" })).toBeVisible();
       await page.waitForLoadState("networkidle");

@@ -1,5 +1,6 @@
 import type { Page } from "@playwright/test";
 import { expect, test } from "./support/test";
+import { click } from "./support/click";
 
 /**
  * Every error the page reports while a test runs: uncaught exceptions and console
@@ -35,7 +36,7 @@ test.describe("smoke and pages", () => {
   test("the title screen leads into the game setup", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByText("Developed by")).toBeVisible();
-    await page.getByRole("button", { name: "Play", exact: true }).click();
+    await click(page.getByRole("button", { name: "Play", exact: true }));
     await expect(page).toHaveURL(/\/setup$/);
     await expect(page.getByRole("heading", { name: "Geodex" })).toBeVisible();
     await expect(page.getByRole("heading", { name: /^Mode$/i })).toBeVisible();

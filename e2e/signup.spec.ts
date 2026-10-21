@@ -1,4 +1,5 @@
 import { expect, test } from "./support/test";
+import { click } from "./support/click";
 import { CONFIRM_SUBJECT, linkIn, mailsTo, tokenIn, waitForMails } from "./support/mail";
 import {
   createConfirmedUser,
@@ -53,7 +54,7 @@ test.describe("signup and email confirmation", () => {
     const [first] = await waitForMails(user.email, CONFIRM_SUBJECT);
 
     await loginViaForm(page, user);
-    await page.getByRole("button", { name: "Resend the confirmation email" }).click();
+    await click(page.getByRole("button", { name: "Resend the confirmation email" }));
     await expect(page.getByText(/Sent\./)).toBeVisible();
 
     const mails = await waitForMails(user.email, CONFIRM_SUBJECT, { count: 2 });

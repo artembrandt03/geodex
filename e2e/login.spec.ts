@@ -1,4 +1,5 @@
 import { expect, test } from "./support/test";
+import { click } from "./support/click";
 import { expireTokens } from "./support/db";
 import { BASE_URL } from "./support/env";
 import { CONFIRM_SUBJECT, tokenIn, waitForMails } from "./support/mail";
@@ -99,7 +100,7 @@ test.describe("signup edge cases, login, lockout and sign out", () => {
     await expect(page.getByRole("link", { name: /Login Tester, view your profile/ })).toBeVisible();
 
     // Signing out returns to the title screen (which has no nav bar)...
-    await page.getByRole("button", { name: "Sign out" }).click();
+    await click(page.getByRole("button", { name: "Sign out" }));
     await expect(page).toHaveURL(`${BASE_URL}/`);
 
     // ...and the rest of the site now sees a visitor, not a player.

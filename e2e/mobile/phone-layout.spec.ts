@@ -1,5 +1,6 @@
 import type { Locator, Page } from "@playwright/test";
 import { expect, test } from "../support/test";
+import { click } from "../support/click";
 import { seedResult, userByEmail } from "../support/db";
 import {
   BOARD_LENGTH_BY_PROJECT,
@@ -92,7 +93,7 @@ test.describe("phone layout", () => {
     await expect(page).toHaveURL(new RegExp("/profile"));
 
     await page.getByRole("button", { name: "Open menu" }).click();
-    await page.getByRole("button", { name: "Sign out" }).click();
+    await click(page.getByRole("button", { name: "Sign out" }));
     // Wait for the sign-out to finish (it ends on the title screen) before navigating away,
     // or the request is aborted and the session survives.
     await expect(page).toHaveURL(`${BASE_URL}/`);

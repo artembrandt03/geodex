@@ -13,6 +13,7 @@ import {
 } from "@/lib/authLimits";
 import { findUserByEmail } from "@/lib/accountEmail";
 import { consumeToken } from "@/lib/emailTokens";
+import { touchActivity, track, trackMany } from "@/lib/analytics/track";
 
 const credentialsSchema = z.object({
   email: z.string().email(),
@@ -59,6 +60,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         if (!userId) return null;
         const user = await prisma.user.findUnique({ where: { id: userId } });
         if (!user?.emailVerifiedAt) return null;
+        await trackMany({ "login.success": 1, "login.auto": 1 });
+        await touchActivity(user.id);
         return { id: user.id, email: user.email, name: user.displayName };
       },
     }),
@@ -80,13 +83,17 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const rules = loginRules(emailKey, ip ? hashKey(ip) : null);
         for (const rule of rules) {
           const state = await checkRateLimit(rule);
-          if (state.limited) throw new RateLimitedSignin(minutesUntil(state.retryAfterMs));
+          if (state.limited) {
+            await track("login.locked");
+            throw new RateLimitedSignin(minutesUntil(state.retryAfterMs));
+          }
         }
 
         const user = await findUserByEmail(email);
         const passwordMatches = user ? await bcrypt.compare(password, user.passwordHash) : false;
         if (!user || !passwordMatches) {
           await Promise.all(rules.map((rule) => recordHit(rule.bucket, rule.key)));
+          await track("login.failed");
           return null;
         }
 
@@ -94,8 +101,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         await clearHits(LOGIN_EMAIL_BUCKET, emailKey);
 
         // The account isn't active until the emailed link has been clicked.
-        if (!user.emailVerifiedAt) throw new EmailNotVerifiedSignin();
+        if (!user.emailVerifiedAt) {
+          await track("login.unconfirmed");
+          throw new EmailNotVerifiedSignin();
+        }
 
+        await track("login.success");
+        await touchActivity(user.id);
         return { id: user.id, email: user.email, name: user.displayName };
       },
     }),

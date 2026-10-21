@@ -37,3 +37,11 @@ export const E2E_AUTH_SECRET = "e2e-only-secret-not-used-anywhere-else";
 
 /** The one password every test account uses. */
 export const PASSWORD = "E2ePassw0rd!";
+
+/** The admin dashboard's tests get their own database and port, so they can count exact rows. */
+export const ADMIN_E2E_PORT = 4010;
+export const ADMIN_TEST_DATABASE_URL = (() => {
+  const url = new URL(TEST_DATABASE_URL);
+  url.pathname = "/geodex_admin_test";
+  return url.toString();
+})();

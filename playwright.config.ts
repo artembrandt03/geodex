@@ -34,7 +34,9 @@ export default defineConfig({
   retries: 2,
   workers: isCI ? 2 : 3,
   timeout: 45_000,
-  expect: { timeout: 10_000 },
+  // Generous because WebKit (especially Playwright's Windows build) can take a while to
+  // finish a page; an assertion only waits that long when something is actually wrong.
+  expect: { timeout: 20_000 },
   reporter: isCI ? [["github"], ["html", { open: "never" }]] : [["list"], ["html", { open: "never" }]],
   use: {
     baseURL: BASE_URL,

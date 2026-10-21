@@ -81,3 +81,15 @@ export async function seedResult(
     [`e2e-${Math.random().toString(36).slice(2, 12)}`, userId, mode, difficulty, roundLength, score, correct],
   );
 }
+
+/**
+ * Empties one leaderboard (a mode, difficulty and length). For tests that need to be the
+ * first to score on a board of their own: a retry of such a test would otherwise meet the
+ * rounds its earlier attempt saved, tie their score, and lose the tie-break to them.
+ */
+export async function clearBoard(mode: string, difficulty: string, roundLength: number): Promise<void> {
+  await query(
+    `DELETE FROM "GameResult" WHERE mode = $1::"GameMode" AND difficulty = $2::"Difficulty" AND "roundLength" = $3`,
+    [mode, difficulty, roundLength],
+  );
+}

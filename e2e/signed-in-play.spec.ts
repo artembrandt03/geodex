@@ -1,5 +1,5 @@
 import { expect, test } from "./support/test";
-import { query, resultsFor, userByEmail } from "./support/db";
+import { clearBoard, query, resultsFor, userByEmail } from "./support/db";
 import {
   BOARD_LENGTH_BY_PROJECT,
   FIVE,
@@ -19,7 +19,6 @@ test.describe("signed-in play, saving and the leaderboard", () => {
     const user = await createConfirmedUser(request, { displayName: "Saver Test" });
     expect(await signInContext(context, user)).toBe(true);
 
-    await page.clock.install();
     await stubQuestions(page, FIVE);
     await page.goto(playUrl("NAME", "EASY", 5));
     await playTimedRound(page, FIVE);
@@ -47,13 +46,16 @@ test.describe("signed-in play, saving and the leaderboard", () => {
     context,
     request,
   }, testInfo) => {
-    // A board no other test plays on, so nobody else can already hold the top spot.
+    // Two or three times the usual time limit: a long round on a slow WebKit.
+    test.slow();
+    // A board no other test plays on, emptied first so that a retry of this test (whose earlier
+    // attempt saved a round here) can still be the first to score on it.
     const length = BOARD_LENGTH_BY_PROJECT[testInfo.project.name];
+    await clearBoard("NAME", "HARD", length);
     const questions = questionsFor(length);
     const user = await createConfirmedUser(request, { displayName: "Champion Test" });
     expect(await signInContext(context, user)).toBe(true);
 
-    await page.clock.install();
     await stubQuestions(page, questions);
     await page.goto(playUrl("NAME", "HARD", length));
     await playTimedRound(page, questions);
@@ -79,12 +81,15 @@ test.describe("signed-in play, saving and the leaderboard", () => {
     context,
     request,
   }, testInfo) => {
+    // Two long rounds back to back: allow two or three times the usual time limit.
+    test.slow();
     const length = BOARD_LENGTH_BY_PROJECT[testInfo.project.name];
     const questions = questionsFor(length);
-    const user = await createConfirmedUser(request, { displayName: "Best Only" });
+    // A name no earlier attempt of this test can share (they all play on the same board).
+    const displayName = `Best${Math.random().toString(36).slice(2, 8)}`;
+    const user = await createConfirmedUser(request, { displayName });
     expect(await signInContext(context, user)).toBe(true);
 
-    await page.clock.install();
     await stubQuestions(page, questions);
 
     // A perfect round first, then a poor one on the same board (MEDIUM, per-project length).
@@ -101,7 +106,7 @@ test.describe("signed-in play, saving and the leaderboard", () => {
     expect(scores[0]).toBeGreaterThan(scores[1]);
 
     await page.goto(`/leaderboard?mode=NAME&difficulty=MEDIUM&roundLength=${length}`);
-    const entries = page.getByRole("row").filter({ hasText: "Best Only" });
+    const entries = page.getByRole("row").filter({ hasText: displayName });
     await expect(entries).toHaveCount(1);
     await expect(entries).toContainText(String(scores[0]));
   });
@@ -114,7 +119,6 @@ test.describe("signed-in play, saving and the leaderboard", () => {
     const user = await createConfirmedUser(request);
     expect(await signInContext(context, user)).toBe(true);
 
-    await page.clock.install();
     await stubQuestions(page, FIVE);
     await page.goto(playUrl("NAME", "EASY", 5));
     await page.getByText(FIVE[0].name, { exact: true }).first().waitFor();

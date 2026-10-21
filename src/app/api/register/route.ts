@@ -15,6 +15,7 @@ import {
 } from "@/lib/accountEmail";
 import { emailBudgetAvailable } from "@/lib/emailBudget";
 import { getSmtpConfig } from "@/lib/mail";
+import { track } from "@/lib/analytics/track";
 
 const registerSchema = z.object({
   email: z.string().trim().toLowerCase().email(),
@@ -52,6 +53,7 @@ export async function POST(request: Request) {
     const rule = signupRule(hashKey(ip));
     const state = await checkRateLimit(rule);
     if (state.limited) {
+      await track("signup.rate_limited");
       const minutes = minutesUntil(state.retryAfterMs);
       return NextResponse.json(
         {
@@ -67,6 +69,13 @@ export async function POST(request: Request) {
   // the DNS lookups it costs can't be used to hammer us.
   const domainCheck = await checkEmailDomain(email);
   if (!domainCheck.ok) {
+    await track(
+      domainCheck.reason === "disposable"
+        ? "signup.refused.disposable"
+        : domainCheck.reason === "no-mail-server"
+          ? "signup.refused.nomx"
+          : "signup.refused.invalid",
+    );
     return NextResponse.json({ error: emailDomainMessage(domainCheck.reason) }, { status: 400 });
   }
 
@@ -75,6 +84,7 @@ export async function POST(request: Request) {
   // A confirmed account already owns this address: say so, and the form sends
   // the person to log in (or reset their password) instead.
   if (existing?.emailVerifiedAt) {
+    await track("signup.refused.exists");
     return NextResponse.json(
       { error: "An account with that email already exists. Please log in instead.", code: "account_exists" },
       { status: 409 },
@@ -99,8 +109,10 @@ export async function POST(request: Request) {
       await sendVerification(user);
     } catch (error) {
       console.error("Could not send confirmation email", error);
+      await track("signup.email_failed");
       return NextResponse.json(EMAIL_FAILED, { status: 502 });
     }
+    await track("signup.resumed");
     return NextResponse.json({ pendingVerification: true }, { status: 201 });
   }
 
@@ -118,8 +130,10 @@ export async function POST(request: Request) {
     // No way to confirm means no usable account: undo it so they can try again.
     console.error("Could not send confirmation email", error);
     await prisma.user.delete({ where: { id: user.id } });
+    await track("signup.email_failed");
     return NextResponse.json(EMAIL_FAILED, { status: 502 });
   }
 
+  await track("signup.created");
   return NextResponse.json({ pendingVerification: true }, { status: 201 });
 }

@@ -64,7 +64,7 @@ export function createAdminServer(config) {
         return send(res, 200, await readFile(path.join(ADMIN_DIR, asset[0])), { "Content-Type": asset[1] });
       }
       if (url.pathname === "/chart.js") {
-        chartJs ??= await readFile(require.resolve("chart.js/dist/chart.umd.js"));
+        chartJs ??= await readFile(path.join(path.dirname(require.resolve("chart.js")), "chart.umd.js"));
         return send(res, 200, chartJs, { "Content-Type": "text/javascript; charset=utf-8" });
       }
 

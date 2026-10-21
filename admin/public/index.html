@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Geodex Admin</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <header class="top">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">G</span>
+        <div>
+          <h1>Geodex admin</h1>
+          <p id="source" class="muted">connecting...</p>
+        </div>
+      </div>
+      <div class="controls">
+        <label class="field">
+          <span>Range</span>
+          <select id="range">
+            <option value="7">Last 7 days</option>
+            <option value="30" selected>Last 30 days</option>
+            <option value="90">Last 90 days</option>
+            <option value="365">Last 365 days</option>
+          </select>
+        </label>
+        <label class="field check">
+          <input type="checkbox" id="auto" />
+          <span>Auto-refresh</span>
+        </label>
+        <button id="refresh" type="button">Refresh</button>
+        <p id="updated" class="muted" aria-live="polite"></p>
+      </div>
+    </header>
+
+    <nav id="tabs" class="tabs" role="tablist" aria-label="Dashboard sections"></nav>
+
+    <main id="main" tabindex="-1">
+      <p class="muted">Loading...</p>
+    </main>
+
+    <footer class="foot muted">
+      Read-only view of the database. Aggregates only: no email addresses or passwords are ever
+      queried. Only reachable from this computer. The last point of each chart is today, which is still in progress.
+    </footer>
+
+    <script src="/chart.js"></script>
+    <script src="/app.js"></script>
+  </body>
+</html>

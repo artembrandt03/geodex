@@ -27,9 +27,10 @@ model User {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
-  gameResults GameResult[]
-  feedback    Feedback[]
-  emailTokens EmailToken[]
+  gameResults  GameResult[]
+  feedback     Feedback[]
+  emailTokens  EmailToken[]
+  activityDays UserActivityDay[]
 }
 
 enum EmailTokenKind {
@@ -153,4 +154,76 @@ model RateLimitHit {
 
   @@index([bucket, key, createdAt])
   @@index([createdAt])
+}
+
+/// One day (UTC) on which an account was active: it logged in, opened a page while
+/// signed in, or started or saved a round. One row per account per day at most, so
+/// the owner can see daily/weekly/monthly active players and who comes back, without
+/// recording what anyone did. Removed with the account.
+model UserActivityDay {
+  userId String
+  user   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  day    DateTime @db.Date
+
+  @@id([userId, day])
+  @@index([day])
+}
+
+enum RoundEventKind {
+  STARTED
+  FINISHED
+  ENDED
+}
+
+enum RoundEndReason {
+  LEFT_TAB
+  INACTIVE
+}
+
+/// Anonymous round lifecycle events, for guests and signed-in players alike: a round
+/// was started, finished, or ended early (and why). There is no user, IP or browser
+/// on a row; `roundId` is the random id of the round itself. `durationMs` is measured
+/// by the server from when the round was issued. Completion rate, guest vs signed-in
+/// volume and how often rounds end early all come from here.
+model RoundEvent {
+  id          String          @id @default(cuid())
+  roundId     String
+  kind        RoundEventKind
+  mode        GameMode
+  difficulty  Difficulty
+  roundLength Int
+  signedIn    Boolean
+  /// Only on ENDED.
+  endReason   RoundEndReason?
+  /// Questions answered when it finished or ended.
+  answered    Int?
+  /// Server-measured time since the round was issued; only on FINISHED and ENDED.
+  durationMs  Int?
+  createdAt   DateTime        @default(now())
+
+  @@unique([roundId, kind])
+  @@index([createdAt])
+}
+
+/// A count of something that happened on a day (UTC), under a key such as
+/// "signup.created", "login.failed", "email.sent.verify" or "pageviews". Counts only:
+/// never who, so it holds no personal data. New things to count need no migration.
+model DailyCounter {
+  day   DateTime @db.Date
+  key   String
+  count Int      @default(0)
+
+  @@id([day, key])
+  @@index([key, day])
+}
+
+/// Lets the site count a visitor once per day without cookies or storing who they are:
+/// a keyed hash of (day, IP, browser string). The hash can't be reversed, changes every
+/// day, and the rows are deleted after two days; the lasting number is the "visitors"
+/// counter in DailyCounter.
+model DailyVisitor {
+  day  DateTime @db.Date
+  hash String
+
+  @@id([day, hash])
 }

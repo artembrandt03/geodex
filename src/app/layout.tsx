@@ -6,6 +6,7 @@ import { NavVisibilityProvider } from "@/components/providers/NavVisibilityProvi
 import { SharedMapProvider } from "@/components/providers/SharedMapProvider";
 import { RoundGuardProvider } from "@/components/providers/RoundGuardProvider";
 import { AppShell } from "@/components/layout/AppShell";
+import { PageViewTracker } from "@/components/analytics/PageViewTracker";
 import { SITE_DESCRIPTION, SITE_NAME, siteUrl } from "@/lib/site";
 
 const geistSans = Geist({
@@ -69,6 +70,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="flex h-dvh flex-col overflow-hidden bg-background text-foreground">
         <AuthProvider>
+          <PageViewTracker />
           <NavVisibilityProvider>
             <SharedMapProvider>
               <RoundGuardProvider>

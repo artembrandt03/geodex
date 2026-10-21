@@ -1,5 +1,6 @@
 import type { BrowserContext, Page } from "@playwright/test";
 import { expect, test } from "./support/test";
+import { click } from "./support/click";
 import { query, resultsFor, userByEmail } from "./support/db";
 import { FIVE, playTimedRound, playUrl, stubQuestions } from "./support/game";
 import {
@@ -68,7 +69,7 @@ test.describe("profile management", () => {
   }) => {
     await signedInOnProfile(page, context, request, { displayName: "Before Name" });
 
-    await page.getByRole("button", { name: "Change" }).first().click();
+    await click(page.getByRole("button", { name: "Change" }).first());
     const dialog = page.getByRole("dialog");
 
     // The profanity filter applies to renames, not just signup.
@@ -94,7 +95,7 @@ test.describe("profile management", () => {
     const user = await signedInOnProfile(page, context, request);
     const newPassword = "Changed-Passw0rd-9";
 
-    await page.getByRole("button", { name: "Change" }).nth(1).click();
+    await click(page.getByRole("button", { name: "Change" }).nth(1));
     const dialog = page.getByRole("dialog");
 
     await dialog.getByLabel("Current password", { exact: true }).fill("not-my-password-1");
@@ -165,7 +166,7 @@ test.describe("profile management", () => {
     await page.goto("/profile");
     await settled(page);
     await expect(page.getByText("Rounds played").locator("xpath=..")).toContainText("1");
-    await page.getByRole("button", { name: "Reset statistics" }).click();
+    await click(page.getByRole("button", { name: "Reset statistics" }));
 
     const dialog = page.getByRole("dialog");
     // Nothing happens until the password is typed: the hold button stays locked.
@@ -196,7 +197,7 @@ test.describe("profile management", () => {
     const user = await signedInOnProfile(page, context, request, { displayName: "Soon Gone" });
     const id = (await userByEmail(user.email))!.id;
 
-    await page.getByRole("button", { name: "Delete account" }).click();
+    await click(page.getByRole("button", { name: "Delete account" }));
     const dialog = page.getByRole("dialog");
     await dialog.getByLabel("Enter your password to confirm", { exact: true }).fill("not-the-password-1");
     await holdToConfirm(page, "Hold to delete", browserName, DELETE);

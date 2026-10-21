@@ -68,7 +68,9 @@ export const BOARD_LENGTH_BY_PROJECT: Record<string, number> = {
  */
 export async function stubQuestions(page: Page, questions: Q[]): Promise<void> {
   await page.route("**/api/rounds/start", async (route) => {
-    const response = await route.fetch();
+    // maxRetries: the request goes over a reused keep-alive connection, which the server may
+    // have just closed (ECONNRESET); Playwright can safely retry exactly that error.
+    const response = await route.fetch({ maxRetries: 3 });
     const body = await response.json();
     await route.fulfill({ response, json: { ...body, questions } });
   });
@@ -122,6 +124,21 @@ export async function advance(page: Page): Promise<void> {
   await page.getByRole("button", { name: /Next question|See results/ }).click();
 }
 
+/**
+ * Same as advance(), with the Enter key (which the page also accepts). A long round
+ * clicks "Next question" many times, and Playwright's click waits for the button to
+ * be "stable", which Playwright's experimental WebKit-on-Windows build is slow at.
+ * Retried until the reveal is gone, in case the key lands before the page has started
+ * listening for it.
+ */
+export async function advanceWithEnter(page: Page): Promise<void> {
+  const reveal = page.getByRole("button", { name: /Next question|See results/ });
+  await expect(async () => {
+    await page.keyboard.press("Enter");
+    await expect(reveal).toBeHidden({ timeout: 700 });
+  }).toPass({ timeout: 10_000 });
+}
+
 /** Name mode, whole round: clicks each question's own country. */
 export async function playPerfectNameRound(page: Page, questions: Q[]): Promise<void> {
   for (const q of questions) {
@@ -134,22 +151,23 @@ export async function playPerfectNameRound(page: Page, questions: Q[]): Promise<
 /**
  * Plays every question of a name-mode round that will be SAVED, so its timing
  * must look human to the server (at least half a second a question, and never
- * more than the real time since the round was issued). Call page.clock.install()
- * before opening the round; this nudges the fake clock a little before each answer.
+ * more than the real time since the round was issued). It simply waits a little
+ * before each answer, in real time: a faked clock would be needed to go faster, but
+ * it brings its own quirks (faked animation frames, timers) that only slow things down.
  * `wrongAt` lists question numbers (from 0) to answer wrongly.
  */
 export async function playTimedRound(
   page: Page,
   questions: Q[],
-  { wrongAt = [] as number[], msPerQuestion = 800 } = {},
+  { wrongAt = [] as number[], msPerQuestion = 560 } = {},
 ): Promise<void> {
   for (let i = 0; i < questions.length; i++) {
     const q = questions[i];
     await page.getByText(q.name, { exact: true }).first().waitFor();
-    await page.clock.fastForward(msPerQuestion);
+    await page.waitForTimeout(msPerQuestion);
     // A far-away country that can't be a neighbor of any in the pool.
     const wrong = q.code === "AUS" ? "CUB" : "AUS";
     await clickCountry(page, wrongAt.includes(i) ? wrong : q.code);
-    await advance(page);
+    await advanceWithEnter(page);
   }
 }

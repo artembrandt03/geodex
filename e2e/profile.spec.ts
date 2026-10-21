@@ -155,7 +155,6 @@ test.describe("profile management", () => {
     expect(await signInContext(context, user)).toBe(true);
 
     // One saved round to erase.
-    await page.clock.install();
     await stubQuestions(page, FIVE);
     await page.goto(playUrl("NAME", "EASY", 5));
     await playTimedRound(page, FIVE);
@@ -209,8 +208,8 @@ test.describe("profile management", () => {
     await holdToConfirm(page, "Hold to delete", browserName, DELETE);
     await expect(dialog.getByText("Your account has been deleted")).toBeVisible();
 
-    // Signed out and sent back to the title screen.
-    await expect(page).toHaveURL(`${new URL(page.url()).origin}/`, { timeout: 15_000 });
+    // Signed out and sent back to the title screen (a couple of sequential requests, slow on a loaded WebKit).
+    await expect(page).toHaveURL(`${new URL(page.url()).origin}/`, { timeout: 40_000 });
     expect(await userByEmail(user.email)).toBeNull();
     const leftovers = await query<{ n: string }>(
       'SELECT count(*)::text AS n FROM "EmailToken" WHERE "userId" = $1',

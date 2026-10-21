@@ -21,8 +21,10 @@ export default function PrivacyPage() {
           Geodex is a free geography game. You can play without giving us anything. If you make an
           account we keep your email, a scrambled version of your password, a display name and the
           results of the rounds you play. We don&apos;t sell your information, show ads, or use
-          analytics or tracking. You can see, change, reset or delete almost all of it yourself from
-          your profile page.
+          third-party analytics or tracking. We do keep simple, anonymous usage statistics, such as how
+          many people visit and how many rounds are played, so the owner can see how the game is doing
+          (details below). You can see, change, reset or delete almost all of your own information
+          yourself from your profile page.
         </p>
       </LegalSection>
 
@@ -65,6 +67,40 @@ export default function PrivacyPage() {
             only emailed to the developer; they are not kept in the database.
           </li>
           <li>
+            <strong>Usage statistics</strong>, to see how the game is used and whether it is working.
+            There are four kinds, none of which involve third parties, cookies or advertising:
+            <LegalList>
+              <li>
+                <em>Active days.</em> On each day you are signed in and do something (log in, open a
+                page, or start or finish a round) we note that day against your account. This shows
+                how many players come back. It does not record what you did.
+              </li>
+              <li>
+                <em>Rounds.</em> For every round, whether you are signed in or playing as a guest, we
+                keep an anonymous record that it started, finished, or ended early (because you
+                left the tab or went a minute without answering), with the mode, difficulty, length,
+                how many questions were answered and how long it took. This record has no account,
+                address or browser attached to it.
+              </li>
+              <li>
+                <em>Visits.</em> We count page views per page. Once a day per visitor we also count
+                their device type (phone, tablet or computer), browser family and where they came from
+                (a search engine, another site, or directly). To count a visitor only once a day
+                without cookies, the server computes a one-way scrambled code from the date, the
+                IP address and the browser type. It cannot be turned back into the address, it is
+                different every day so one day can&apos;t be linked to another, and it is deleted
+                within a few days; only the totals remain. We do not count crawlers, nor anyone whose
+                browser sends a Do Not Track or Global Privacy Control signal.
+              </li>
+              <li>
+                <em>Daily totals.</em> Plain counts of things like accounts created, successful and
+                failed logins, emails sent, signups we refused and feedback received. They are numbers
+                only, with no information about who.
+              </li>
+            </LegalList>
+            Only the owner sees these statistics, and only as totals and charts.
+          </li>
+          <li>
             <strong>Abuse prevention</strong>: to slow down password guessing, fake signups and spam,
             failed logins, signup attempts, confirmation and password reset requests, and feedback
             submissions are counted against a scrambled
@@ -81,8 +117,9 @@ export default function PrivacyPage() {
       <LegalSection title="Cookies">
         <p>
           Geodex uses only the cookies needed to keep you signed in and to protect the login form from
-          forgery. There are no advertising, analytics or third-party tracking cookies, and no third
-          party scripts. Playing as a guest sets no sign-in cookie.
+          forgery. There are no advertising or tracking cookies, the usage statistics above use no
+          cookies at all, and there are no third-party analytics scripts. Playing as a guest sets no
+          sign-in cookie.
         </p>
       </LegalSection>
 
@@ -133,6 +170,12 @@ export default function PrivacyPage() {
             you reset your statistics.
           </li>
           <li>
+            Your account&apos;s active days are kept while the account exists and are deleted with it.
+            The anonymous round records and daily totals contain nothing about you, so they are kept
+            for as long as they are useful for understanding the game. The scrambled daily visitor
+            codes are deleted within a few days.
+          </li>
+          <li>
             Feedback is kept as long as it is useful. If you delete your account, feedback you sent
             stays but is no longer linked to you.
           </li>
@@ -158,7 +201,7 @@ export default function PrivacyPage() {
           <li>change your display name and your password;</li>
           <li>make your profile private;</li>
           <li>reset your statistics, which erases your match history and leaderboard places;</li>
-          <li>delete your account, which erases your account and results.</li>
+          <li>delete your account, which erases your account, results and active days.</li>
         </LegalList>
         <p>
           For anything else, contact us as above. We will answer within 30 days. If you are not

@@ -72,8 +72,10 @@ export async function POST(request: Request) {
     await trackMany(increments);
     if (session?.user?.id) await touchActivity(session.user.id);
 
-    // Housekeeping: yesterday's hashes are no use to anyone, so they don't linger.
-    if (Math.random() < 0.02) {
+    // Housekeeping: old hashes are no use to anyone, so they don't linger. Done whenever a
+    // new visitor is counted (about once per visitor per day, and cheap: it's a range on the
+    // table's key) rather than at random, so deletion happens as promised even on a quiet site.
+    if (isNewToday === 1) {
       const cutoff = new Date(day);
       cutoff.setUTCDate(cutoff.getUTCDate() - 2);
       await prisma.dailyVisitor.deleteMany({ where: { day: { lt: cutoff } } });

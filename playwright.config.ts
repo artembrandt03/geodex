@@ -13,11 +13,15 @@ assertTestDatabase(TEST_DATABASE_URL);
 
 const isCI = Boolean(process.env.CI);
 
+/** The spec that needs the app's full decorative motion; see the motion projects below. */
+const MOTION_SPEC = "**/motion.spec.ts";
+
 /**
  * End-to-end suite. It runs against a production build of the app (the real
  * code paths, not the dev server's) with its own database and a fake mail
  * server (e2e/mail-sink.mjs). Desktop projects run every spec except the ones
- * under e2e/mobile/, which run on the two phone projects instead.
+ * under e2e/mobile/ (which run on the two phone projects instead) and
+ * e2e/motion.spec.ts (which runs last, alone, on the two motion projects).
  *
  *   npm run test:e2e              everything (Chromium + WebKit, desktop + phone)
  *   npm run test:e2e:chromium     the fast loop
@@ -52,13 +56,13 @@ export default defineConfig({
     {
       name: "chromium-desktop",
       use: { ...devices["Desktop Chrome"] },
-      testIgnore: "**/mobile/**",
+      testIgnore: ["**/mobile/**", MOTION_SPEC],
     },
     {
       name: "webkit-desktop",
       timeout: 90_000,
       use: { ...devices["Desktop Safari"] },
-      testIgnore: "**/mobile/**",
+      testIgnore: ["**/mobile/**", MOTION_SPEC],
     },
     {
       name: "mobile-chrome",
@@ -70,6 +74,23 @@ export default defineConfig({
       timeout: 90_000,
       use: { ...devices["iPhone 14"] },
       testMatch: "**/mobile/**/*.spec.ts",
+    },
+    // The full-motion tests (48 animated canvases plus a WebGL field per page) are heavy
+    // enough to starve every other test's browser when they run alongside them, so they run
+    // last and alone: each project waits for all the ones before it. (Playwright skips a
+    // project whose dependency failed, so a broken suite doesn't also run these.)
+    {
+      name: "motion-chromium",
+      use: { ...devices["Desktop Chrome"] },
+      testMatch: MOTION_SPEC,
+      dependencies: ["chromium-desktop", "webkit-desktop", "mobile-chrome", "mobile-safari"],
+    },
+    {
+      name: "motion-webkit",
+      timeout: 90_000,
+      use: { ...devices["Desktop Safari"] },
+      testMatch: MOTION_SPEC,
+      dependencies: ["motion-chromium"],
     },
   ],
   webServer: [

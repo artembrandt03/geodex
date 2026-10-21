@@ -55,6 +55,18 @@ The end-to-end suite builds the app and runs it against its own `geodex_test` da
 doesn't end in `_test`) with a fake mail server, so it never touches dev data or sends real
 email. See [CLAUDE.md](./CLAUDE.md) for how it works. Start Postgres first (`docker compose up -d`).
 
+## Admin dashboard
+
+A private, read-only monitoring dashboard for the owner (accounts, daily active players, rounds
+per day, retention, traffic, abuse signals, feedback, database size; aggregates only). It lives in
+[`admin/`](./admin/README.md), is never deployed, and only listens on `127.0.0.1`.
+
+```bash
+npm run admin             # reads your local development database -> http://localhost:4000
+npm run admin:seed-demo   # fills a separate geodex_demo database with invented activity
+npm run admin:demo        # the same dashboard, pointed at that demo data
+```
+
 ## Getting started
 
 _Coming soon — project scaffolding in progress._

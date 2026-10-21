@@ -211,6 +211,28 @@ export function useRound(config: RoundConfig | null) {
     return () => document.removeEventListener("visibilitychange", onVisibilityChange);
   }, [state.status, endRound]);
 
+  // Tell the server how the round ended, for the owner's anonymous statistics (completion
+  // rate, rounds ended early and why). Guests too: nothing identifying is sent beyond the
+  // signed round token. Once per round; a failure is of no consequence to the player.
+  const reported = useRef(false);
+  useEffect(() => {
+    if ((state.status !== "finished" && state.status !== "ended") || reported.current || !state.roundToken) {
+      return;
+    }
+    reported.current = true;
+    void fetch("/api/rounds/event", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      keepalive: true,
+      body: JSON.stringify({
+        roundToken: state.roundToken,
+        kind: state.status === "finished" ? "finished" : "ended",
+        reason: state.endReason === "left_tab" ? "left_tab" : state.endReason === "inactive" ? "inactive" : undefined,
+        answered: state.outcomes.length,
+      }),
+    }).catch(() => {});
+  }, [state.status, state.roundToken, state.endReason, state.outcomes.length]);
+
   // Persist the finished round for signed-in users.
   useEffect(() => {
     if (state.status !== "finished" || state.saved || !config || !session?.user || !state.roundToken) {

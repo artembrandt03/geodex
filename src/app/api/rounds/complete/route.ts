@@ -7,6 +7,7 @@ import { SCORING_VERSION } from "@/lib/game/scoring";
 import { checkRoundPlausible } from "@/lib/game/plausibility";
 import { verifyRoundToken } from "@/lib/game/roundToken";
 import { ROUND_LENGTHS } from "@/lib/game/types";
+import { touchActivity, track } from "@/lib/analytics/track";
 
 // A round can't take longer than a day.
 const MAX_ROUND_MS = 24 * 60 * 60 * 1000;
@@ -74,6 +75,7 @@ export async function POST(request: Request) {
   // Only a round this server started can be saved, once, for what was started.
   const token = verifyRoundToken(roundToken);
   if (!token) {
+    await track("round.rejected.token");
     return NextResponse.json(
       { error: "This round has expired. Please play again." },
       { status: 400 },
@@ -86,6 +88,7 @@ export async function POST(request: Request) {
     token.roundLength !== roundLength ||
     totalTimeMs > elapsedMs + TIME_SLACK_MS
   ) {
+    await track("round.rejected.mismatch");
     console.warn(
       `[rounds/complete] rejected a round from ${session.user.id}: doesn't match its start token (claimed ${totalTimeMs}ms, ${elapsedMs}ms since start)`,
     );
@@ -98,6 +101,7 @@ export async function POST(request: Request) {
   // reply stays generic so it doesn't coach anyone on what to adjust.
   const verdict = checkRoundPlausible(parsed.data);
   if (!verdict.ok) {
+    await track("round.rejected.implausible");
     console.warn(`[rounds/complete] rejected a round from ${session.user.id}: ${verdict.reason}`);
     return NextResponse.json({ error: "That result doesn't look right." }, { status: 400 });
   }
@@ -122,10 +126,14 @@ export async function POST(request: Request) {
   } catch (error) {
     // The unique roundNonce: this token's result was already saved.
     if ((error as { code?: string }).code === "P2002") {
+      await track("round.replayed");
       return NextResponse.json({ error: "That round was already saved." }, { status: 409 });
     }
     throw error;
   }
+
+  await track("round.saved");
+  await touchActivity(session.user.id);
 
   // On the board only if THIS round is the player's entry in the top N (their
   // best run), not merely because an older run of theirs already was.

@@ -114,5 +114,18 @@ export function emailSendRules(kind: AccountEmailKind, emailKey: string, ipKey: 
   return rules;
 }
 
+/**
+ * Starting a round now records an anonymous event, so it's limited per IP like the other
+ * things that write: generous (a round takes a minute or more, so 60 in 10 minutes is far
+ * beyond anyone playing) but enough to stop a script filling the table.
+ */
+export const ROUND_STARTS_PER_IP = 60;
+export const ROUND_START_WINDOW_MS = 10 * MINUTE;
+export const ROUND_START_IP_BUCKET = "round-start:ip";
+
+export function roundStartRule(ipKey: string): RateLimitRule {
+  return { bucket: ROUND_START_IP_BUCKET, key: ipKey, limit: ROUND_STARTS_PER_IP, windowMs: ROUND_START_WINDOW_MS };
+}
+
 /** Error code the login form looks for when the password was right but the email isn't confirmed yet. */
 export const EMAIL_NOT_VERIFIED_CODE = "email_not_verified";

@@ -32,5 +32,8 @@ export function assertTestDatabase(url: string): void {
   }
 }
 
+/** The server's AUTH_SECRET in the suite (the usage-statistics tests recompute a visitor hash with it). */
+export const E2E_AUTH_SECRET = "e2e-only-secret-not-used-anywhere-else";
+
 /** The one password every test account uses. */
 export const PASSWORD = "E2ePassw0rd!";

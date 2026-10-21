@@ -6,6 +6,7 @@ import { emailSendRules, type AccountEmailKind } from "@/lib/authLimits";
 import { issueToken, resetPasswordUrl, sweepExpiredTokens, verifyEmailUrl } from "@/lib/emailTokens";
 import { sendPasswordResetEmail, sendVerificationEmail } from "@/lib/authEmails";
 import { getSmtpConfig } from "@/lib/mail";
+import { track } from "@/lib/analytics/track";
 import { EMAIL_BUDGET_MESSAGE, emailBudgetAvailable, recordEmailSent } from "@/lib/emailBudget";
 
 /** Server-side plumbing shared by the signup, resend, forgot-password and reset endpoints. */
@@ -37,7 +38,10 @@ export async function limitAccountEmails(
   kind: AccountEmailKind,
 ): Promise<NextResponse | null> {
   // The whole day's budget first: if it's spent nobody gets an email, whoever they are.
-  if (!(await emailBudgetAvailable())) return emailBudgetResponse();
+  if (!(await emailBudgetAvailable())) {
+    await track("email.budget_blocked");
+    return emailBudgetResponse();
+  }
 
   const ip = clientIp(request);
   const rules = emailSendRules(kind, hashKey(normalizeEmail(email)), ip ? hashKey(ip) : null);
@@ -69,9 +73,18 @@ interface Recipient {
 async function deliver(send: () => Promise<void>, label: string, to: string, url: string) {
   if (getSmtpConfig()) {
     // Backstop for requests that raced past the earlier check.
-    if (!(await emailBudgetAvailable())) throw new Error("Daily email budget reached.");
-    await send();
+    if (!(await emailBudgetAvailable())) {
+      await track("email.budget_blocked");
+      throw new Error("Daily email budget reached.");
+    }
+    try {
+      await send();
+    } catch (error) {
+      await track("email.failed");
+      throw error;
+    }
     await recordEmailSent();
+    await track(label === "confirmation" ? "email.sent.verify" : "email.sent.reset");
     return;
   }
   if (process.env.NODE_ENV !== "production") {

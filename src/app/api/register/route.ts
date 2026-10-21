@@ -117,7 +117,10 @@ export async function POST(request: Request) {
   }
 
   // Don't create an account we can't email: with the day's budget spent, ask them to come back.
-  if (getSmtpConfig() && !(await emailBudgetAvailable())) return emailBudgetResponse();
+  if (getSmtpConfig() && !(await emailBudgetAvailable())) {
+    await track("email.budget_blocked");
+    return emailBudgetResponse();
+  }
 
   const user = await prisma.user.create({
     data: { email, passwordHash, displayName },

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Particles } from "./Particles";
-import { usePrefersReducedMotion } from "@/lib/usePrefersReducedMotion";
+import { useMotionPreference } from "@/lib/usePrefersReducedMotion";
 import { ArcText } from "./ArcText";
 
 export interface HeroSceneProps {
@@ -77,8 +77,10 @@ function useEmblemSize() {
 export function HeroScene({ transitioning, onPlay }: HeroSceneProps) {
   const size = useEmblemSize();
   useMapPreload();
-  // The drifting particle field never stops; it stays off for anyone who asked for reduced motion.
-  const reducedMotion = usePrefersReducedMotion();
+  // The drifting particle field never stops; it stays off for anyone who asked for reduced
+  // motion, and isn't started until we know they didn't (it would create a WebGL context
+  // only to throw it away).
+  const motionPreference = useMotionPreference();
 
   return (
     <motion.div
@@ -87,7 +89,7 @@ export function HeroScene({ transitioning, onPlay }: HeroSceneProps) {
       className="relative flex h-full w-full flex-col items-center justify-center overflow-hidden bg-black px-4"
     >
       <div className="pointer-events-none absolute inset-0">
-        {!reducedMotion && (
+        {motionPreference === "full" && (
           <Particles
             particleColors={PARTICLE_COLORS}
             particleCount={880}

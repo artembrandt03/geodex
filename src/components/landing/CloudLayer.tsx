@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { DotLottieReact } from "@lottiefiles/dotlottie-react";
-import { usePrefersReducedMotion } from "@/lib/usePrefersReducedMotion";
+import { useMotionPreference } from "@/lib/usePrefersReducedMotion";
 
 export interface CloudLayerProps {
   /** True while the setup screen is zooming into the map to start a round —
@@ -43,8 +43,10 @@ const CLOUDS: CloudSpec[] = Array.from({ length: CLOUD_COUNT }, (_, i) => ({
 export function CloudLayer({ escaping }: CloudLayerProps) {
   // Forty-eight animated canvases that never stop: exactly what someone who asked for
   // reduced motion (or a slow phone) doesn't want. The map underneath is enough.
-  const reducedMotion = usePrefersReducedMotion();
-  if (reducedMotion) return null;
+  // Not mounted at all until it's known they want it: starting 48 players only to stop them
+  // a moment later would download and abort the animation 48 times on every page.
+  const motionPreference = useMotionPreference();
+  if (motionPreference !== "full") return null;
 
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden">

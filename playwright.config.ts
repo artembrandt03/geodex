@@ -108,7 +108,10 @@ export default defineConfig({
     },
     {
       // Builds first, so the suite always tests the current code.
-      command: `npm run build && npx next start -p ${APP_PORT}`,
+      // --keepAliveTimeout: Next closes idle connections after 5 seconds, and Playwright's HTTP
+      // client now and then reuses one just as it closes (ECONNRESET). Keeping them open for
+      // two minutes, far longer than any gap between requests in a test, removes the race.
+      command: `npm run build && npx next start -p ${APP_PORT} --keepAliveTimeout 120000`,
       url: BASE_URL,
       timeout: 300_000,
       reuseExistingServer: !isCI,
